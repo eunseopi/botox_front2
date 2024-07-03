@@ -1,0 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body,html {
+    height: 100%;
+    margin: 0;
+    background-color: #2c2c2c;
+}
+
+#root {
+    height: 100%;
+}
