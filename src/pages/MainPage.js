@@ -40,7 +40,7 @@ const MainPage = () => {
                     <div className="relative w-full max-w-lg">
                         <input
                             type="text"
-                            placeholder="검색어를 입력해 주세요."
+                            placeholder="검색어를 입력해 주세요. 잠깐 테스트용으로 작성할게요"
                             className="w-full p-2 pl-10 border-0 rounded"
                         />
                         <img
