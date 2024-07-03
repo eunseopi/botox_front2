@@ -30,7 +30,7 @@ const MainPage = () => {
                     <img src={menuImage} alt="Menu" className="w-10 h-10 p-2 mr-2" />
                     <div className="flex items-center">
                         <a href="/login" className="text-white mr-4 hover:text-gray-300">로그인</a>
-                        <a href="/roomlist" className="text-white hover:text-gray-300">게시글</a>
+                        <a href="/board" className="text-white hover:text-gray-300">게시글</a>
                     </div>
                 </nav>
             </div>

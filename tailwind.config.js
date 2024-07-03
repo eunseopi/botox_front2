@@ -14,6 +14,8 @@ module.exports = {
         customMainBg: '#2c2c2c',
         customLoginBg: '#e0dddd',
         customLoginBtn: '#dddddd',
+        customBoardBg: '#484545',
+        customIdBg: '#676666',
       }
     },
   },
