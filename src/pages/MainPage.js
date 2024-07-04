@@ -10,6 +10,7 @@ import gta from '../images/gta.png'
 
 const MainPage = () => {
     const [userCount, setUserCount] = React.useState(0);
+    const [gameName, setGameName] = React.useState('');
 
     useEffect(() => {
         // 나중에 서버에서 불러올 코드 작성할게요!
@@ -40,7 +41,10 @@ const MainPage = () => {
                     <div className="relative w-full max-w-lg">
                         <input
                             type="text"
-                            placeholder="검색어를 입력해 주세요. 잠깐 테스트용으로 작성할게요"
+                            id="text"
+                            value={gameName}
+                            onChange={(e) => {setGameName(e.target.value)}}
+                            placeholder="검색어를 입력해 주세요."
                             className="w-full p-2 pl-10 border-0 rounded"
                         />
                         <img

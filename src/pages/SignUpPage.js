@@ -3,17 +3,15 @@ import {useNavigate} from "react-router-dom";
 import BotoxImage from '../images/white.png'
 import menuImage from "../images/menu.png";
 
-const LoginPage = () => {
+const SignUpPage = () => {
     const [email, setEmail] = React.useState('');
     const [password, setPassword] = React.useState('');
+    const [confirmPassword, setConfirmPassword] = React.useState('');
+    const [nickname, setNickname] = React.useState('');
     const navigate = useNavigate();
 
-    const handleLogin = () => {
-        navigate('/');
-    }
-
     const handleSignUp = () => {
-        navigate('/signup');
+        navigate('/');
     }
 
 
@@ -45,20 +43,29 @@ const LoginPage = () => {
                     onChange={(e) => {setPassword(e.target.value)}}
                     className="w-full p-2 mb-6 border-0 rounded"
                 />
+                <h3 className={"text-customDarkBlue text-sm mb-2"}>비밀번호 확인</h3>
+                <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => {setConfirmPassword(e.target.value)}}
+                    className={`w-full p-2 mb-6 border rounded
+                    ${password !== confirmPassword && confirmPassword !== '' ? 'border-red-500' : ''}`}
+                />
+                <h3 className="text-customDarkBlue text-sm mb-2">닉네임</h3>
+                <input
+                    type="text"
+                    value={nickname}
+                    onChange={(e) =>{setNickname(e.target.value)}}
+                    className="w-full p-2 mb-4 border-0 rounded"
+                />
                 <button
-                    onClick={handleLogin}
+                    onClick={handleSignUp}
                     className="w-full bg-gray-300 p-2 rounded hover:bg-gray-400 transition duration-300">
-                    로그인
+                    회원가입
                 </button>
-                <p className="mt-4 text-center">
-                    계정이 없으시다면?{' '}
-                    <a href="#" className="text-blue-500 font-bold hover:underline" onClick={handleSignUp}>
-                        회원가입
-                    </a>
-                </p>
             </div>
         </div>
     );
 };
 
-export default LoginPage;
+export default SignUpPage;

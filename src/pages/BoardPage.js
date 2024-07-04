@@ -1,38 +1,79 @@
-import React, {useEffect, useRef} from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from "react-router-dom";
 import menuImage from "../images/menu.png";
 import roomIcon from '../images/roomIcon.png';
 import egg from '../images/egg.png';
 import good from '../images/good.jpeg';
 import profile from '../images/profile.jpg'
-import {useNavigate} from "react-router-dom";
+import search from "../images/search.png";
 
-const GameCard = ({ title, number, id }) => (
-    <div className="bg-customBoardBg rounded-lg p-4 mb-4 shadow-lg m-auto w-8/12">
+const GameCard = ({ post, onClick }) => (
+    <div className="bg-customBoardBg rounded-lg p-4 mb-4 shadow-lg m-auto w-8/12 cursor-pointer"
+         onClick={() => onClick(post)}>
         <div className="flex items-center justify-between mb-2">
             <div className="flex items-center">
                 <div className="mr-8">
                     <img src={roomIcon} alt="Room" className="w-3 h-3 ml-5 mr-3 mt-2 mb-2 "/>
-                    <p className="text-white mt-2">{number}</p>
+                    <p className="text-white mt-2">{post.number}</p>
                 </div>
                 <div>
-                    <h3 className="font-bold text-white">{title}</h3>
+                    <h3 className="font-bold text-white">{post.title}</h3>
                     <div className="flex items-center">
                         <img src={egg} alt="Egg" className="w-5 h-3 mr-2"/>
-                        <p className="text-customIdBg">{id}</p>
+                        <p className="text-customIdBg">{post.id}</p>
                     </div>
                 </div>
             </div>
             <div className="ml-auto">
-                <img src={good} alt="Good" className="w-44 h-24"/>
+                {post.image ? (
+                    <img src={post.image} alt="게시글 이미지" className="w-44 h-24 object-cover"/>
+                ) : (
+                    <img src={good} alt="Good" className="w-44 h-24"/>
+                )}
             </div>
         </div>
     </div>
 );
 
 const BoardPage = () => {
-    const [modalOpen, setModalOpen] = React.useState(false);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [roomName, setRoomName] = useState('');
+    const [posts, setPosts] = useState([]);
     const modalBackground = useRef(null);
     const navigate = useNavigate();
+    const location = useLocation();
+
+    useEffect(() => {
+        // 로컬 스토리지에서 게시글 목록 가져오기
+        const storedPostsString = localStorage.getItem('posts');
+        let storedPosts = [];
+
+        if (storedPostsString) {
+            try {
+                storedPosts = JSON.parse(storedPostsString);
+            } catch (error) {
+                console.error('에러 이유:', error);
+            }
+        }
+
+        if (storedPosts.length > 0) {
+            setPosts(storedPosts);
+        } else {
+            // 초기 게시글이 없을 경우에만 더미 데이터 사용
+            const initialPosts = [
+                { title: "쵸비 VS 에디 후기 ㄷㄷㄷㄷㄷㄷㄷㄷ .JPG", number: "101909", id: "동욱" },
+            ];
+            setPosts(initialPosts);
+            localStorage.setItem('posts', JSON.stringify(initialPosts));
+        }
+
+        // 새 게시글이 있다면 추가
+        if (location.state?.newPost) {
+            const updatedPosts = [location.state.newPost, ...storedPosts];
+            setPosts(updatedPosts);
+            localStorage.setItem('posts', JSON.stringify(updatedPosts));
+        }
+    }, [location]);
 
     const handleClickOutside = (e) => {
         if (modalBackground.current && !modalBackground.current.contains(e.target)) {
@@ -43,6 +84,14 @@ const BoardPage = () => {
     const handleClickHome = () => {
         navigate('/');
     }
+
+    const handleWrite = () => {
+        navigate('/write')
+    }
+
+    const handlePostClick = (post) => {
+        navigate(`/post/${post.number}`, { state: { post } });
+    };
 
     useEffect(() => {
         if (modalOpen) {
@@ -69,8 +118,8 @@ const BoardPage = () => {
                                 <div className="flex items-center">
                                     <img src={profile} alt="Profile" className="w-20 h-20 p-2 mr-2 rounded-full opacity-100"/>
                                     <div>
-                                    <p className="text-xl text-center mb-2">뜨끈한 두유님</p>
-                                    <p className="ml-14 text-gray-500">로그아웃</p>
+                                        <p className="text-xl text-center mb-2">뜨끈한 두유님</p>
+                                        <p className="ml-14 text-gray-500">로그아웃</p>
                                     </div>
                                 </div>
                                 <div className="text-center">
@@ -88,22 +137,39 @@ const BoardPage = () => {
                 <h1 className="text-center sm:text-left">자유 게시판</h1>
             </div>
             <div className="flex-1 p-8 bg-customMainBg overflow-y-auto">
+                <div className="flex justify-end sm:mr-80 lg:mr-80 xl:mr-80 mb-4">
+                    <button
+                        onClick={handleWrite}
+                        className="text-xl text-white bg-customBoardBg p-2 rounded-xl w-48"
+                    >게시글 쓰기</button>
+                </div>
                 <div className="mb-8">
-                    <GameCard
-                        title="쵸비 VS 에디 후기 ㄷㄷㄷㄷㄷㄷㄷㄷ .JPG"
-                        number="101909"
-                        id="동욱"
-                    />
-                    <GameCard
-                        title="쵸비 VS 에디 후기 ㄷㄷㄷㄷㄷㄷㄷㄷ .JPG"
-                        number="101919"
-                        id="은섭"
-                    />
-                    <GameCard
-                        title="쵸비 VS 에디 후기 ㄷㄷㄷㄷㄷㄷㄷㄷ .JPG"
-                        number="101929"
-                        id="동렬"
-                    />
+                    {posts.map((post, index) => (
+                        <GameCard
+                            key={index}
+                            post={post}
+                            onClick={handlePostClick}
+                        />
+                    ))}
+                </div>
+                <div className="flex items-center justify-center px-4">
+                    <div className="relative w-full max-w-lg">
+                        <input
+                            type="text"
+                            id="text"
+                            value={roomName}
+                            onChange={(e) => {
+                                setRoomName(e.target.value)
+                            }}
+                            placeholder="제목을 입력해 주세요."
+                            className="w-full p-2 pl-10 mb-3 border-0 rounded"
+                        />
+                        <img
+                            src={search}
+                            alt="Search"
+                            className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5"
+                        />
+                    </div>
                 </div>
                 <div className="flex justify-center text-white">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
