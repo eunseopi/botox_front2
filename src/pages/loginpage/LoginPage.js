@@ -1,7 +1,7 @@
 import React from 'react';
 import {useNavigate} from "react-router-dom";
-import BotoxImage from '../images/white.png'
-import menuImage from "../images/menu.png";
+import BotoxImage from '../../images/white.png'
+import menuImage from "../../images/menu.png";
 
 const LoginPage = () => {
     const [email, setEmail] = React.useState('');
