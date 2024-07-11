@@ -1,16 +1,20 @@
 import React, {useEffect} from 'react'
-import '../styles/index.css'
-import menuImage from '../images/menu.png'
-import mainLogo from '../images/MainLogo.png'
-import search from '../images/search.png'
-import lol from '../images/lol.png'
-import sudden from '../images/sudden.png'
-import userIcon from '../images/user-icon.png'
-import gta from '../images/gta.png'
+import { useNavigate } from 'react-router-dom'
+import '../../styles/index.css'
+import menuImage from '../../images/menu.png'
+import mainLogo from '../../images/MainLogo.png'
+import search from '../../images/search.png'
+import lol from '../../images/lol.png'
+import sudden from '../../images/sudden.png'
+import userIcon from '../../images/user-icon.png'
+import gta from '../../images/gta.png'
+import {Link} from "react-router-dom";
+
 
 const MainPage = () => {
     const [userCount, setUserCount] = React.useState(0);
     const [gameName, setGameName] = React.useState('');
+    const navigate = useNavigate();
 
     useEffect(() => {
         // 나중에 서버에서 불러올 코드 작성할게요!
@@ -22,7 +26,9 @@ const MainPage = () => {
         return () => clearInterval(intervalId);
     }, []);
 
-
+    const handleInRoom = () => {
+        navigate('/room');
+    }
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -61,7 +67,7 @@ const MainPage = () => {
                 </div>
                 <div className="flex flex-wrap justify-center px-4 sm:px-6 lg:px-64">
                     <div className="w-full sm:w-1/2 md:w-1/3 p-2 relative">
-                        <img src={lol} alt="MenuLoL" className="w-auto h-auto object-cover rounded"/>
+                        <img src={lol} alt="MenuLoL" className="w-auto h-auto object-cover rounded" onClick={handleInRoom}/>
                             <div className="absolute top-5 right-7 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full flex items-center">
                                 <img src={userIcon} alt="User" className="w-3 h-3 sm:w-4 sm:h-4 mr-1"/>
                                 <span>{userCount}</span>

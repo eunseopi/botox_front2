@@ -16,6 +16,7 @@ module.exports = {
         customLoginBtn: '#dddddd',
         customBoardBg: '#484545',
         customIdBg: '#676666',
+        customFriendBg: '#424242'
       }
     },
   },

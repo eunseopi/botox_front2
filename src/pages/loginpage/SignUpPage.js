@@ -1,7 +1,7 @@
 import React from 'react';
 import {useNavigate} from "react-router-dom";
-import BotoxImage from '../images/white.png'
-import menuImage from "../images/menu.png";
+import BotoxImage from '../../images/white.png'
+import menuImage from "../../images/menu.png";
 
 const SignUpPage = () => {
     const [email, setEmail] = React.useState('');
@@ -10,10 +10,35 @@ const SignUpPage = () => {
     const [nickname, setNickname] = React.useState('');
     const navigate = useNavigate();
 
-    const handleSignUp = () => {
-        navigate('/');
-    }
+    // const handleSignUp = () => {
+    //     navigate('/');
+    // }
 
+
+    // 회원가입 API 나중에 개발.
+    const handleSignUp = async () => {
+        try {
+            if(password !== confirmPassword) {
+                alert('비밀번호가 일치하지 않습니다.');
+                return;
+            }
+
+            const response = await fetch('/api/users/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({email, password })
+            });
+
+            if(response.status === 200) {
+                navigate('/login');
+            }
+        }catch(error){
+            console.log('회원가입 중 에러 발생:',error);
+            alert('회원가입 중 에러가 발생하였습니다.');
+        }
+    }
 
     return (
         <div className="bg-customMainBg flex flex-col items-center justify-center">
