@@ -52,9 +52,9 @@ const LoginPage = () => {
                 </button>
                 <p className="mt-4 text-center">
                     계정이 없으시다면?{' '}
-                    <a href="#" className="text-blue-500 font-bold hover:underline" onClick={handleSignUp}>
-                        회원가입
-                    </a>
+                    {/*<a href="#" className="text-blue-500 font-bold hover:underline" onClick={handleSignUp}>*/}
+                    {/*    회원가입*/}
+                    {/*</a>*/}
                 </p>
             </div>
         </div>
