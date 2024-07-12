@@ -7,8 +7,9 @@ import good from '../../images/good.jpeg';
 import profile from '../../images/profile.jpg'
 import search from "../../images/search.png";
 import CreateRoomModal from './CreateRoomModal';
+import PasswordModal from './modal/PassWordModal'; // PasswordModal 임포트 추가
 import { AiOutlineUserAdd } from "react-icons/ai";
-
+import { FaLock } from 'react-icons/fa';
 
 const GameCard = ({ room, onClick }) => (
     <div className="bg-customBoardBg rounded-lg p-4 mb-4 shadow-lg m-auto w-8/12 cursor-pointer"
@@ -17,18 +18,21 @@ const GameCard = ({ room, onClick }) => (
             <div className="flex items-center">
                 <div className="mr-8">
                     <img src={roomIcon} alt="Room" className="w-3 h-3 ml-5 mr-3 mt-2 mb-2 "/>
-                    <p className="text-white mt-2">{room.roomId}</p>
+                    <p className="text-white text-center">{room.roomNum}</p>
                 </div>
                 <div>
-                    <h3 className="font-bold text-white">{room.roomTitle}</h3>
+                    <div className="flex items-center">
+                        <h3 className="font-bold text-white mr-2">{room.roomTitle}</h3>
+                        {room.roomPassword && room.roomPassword.trim() !== '' && <FaLock className="text-yellow-500" />}
+                    </div>
                     <div className="flex items-center">
                         <img src={egg} alt="Egg" className="w-5 h-3 mr-2"/>
                         <p className="text-customIdBg">{room.roomMasterId}</p>
                     </div>
                 </div>
             </div>
-            <div className="ml-auto">
-                <img src={good} alt="Good" className="w-44 h-24"/>
+            <div className="ml-auto text-white -mt-10">
+                <p>{room.roomParticipantIds ? room.roomParticipantIds.length : 0}/{room.roomCapacityLimit}</p>
             </div>
         </div>
     </div>
@@ -40,6 +44,8 @@ const RoomPage = () => {
     const [rooms, setRooms] = useState([]);
     const [friendsModalOpen, setFriendsModalOpen] = useState(false);
     const [createRoomModalOpen, setCreateRoomModalOpen] = useState(false);
+    const [passwordModalOpen, setPasswordModalOpen] = useState(false); // 비밀번호 모달 상태 추가
+    const [selectedRoom, setSelectedRoom] = useState(null); // 선택된 방 상태 추가
     const modalBackground = useRef(null);
     const friendsModalBackground = useRef(null);
     const navigate = useNavigate();
@@ -63,7 +69,7 @@ const RoomPage = () => {
         } else {
             // 초기 방이 없을 경우 더미 데이터 사용
             const initialRooms = [
-                { roomId: 101909, roomTitle: "쵸비 VS 에디 대전", roomMasterId: "동욱" },
+                { roomNum: 101909, roomTitle: "쵸비 VS 에디 대전", roomMasterId: "동욱" },
             ];
             setRooms(initialRooms);
             localStorage.setItem('rooms', JSON.stringify(initialRooms));
@@ -97,7 +103,28 @@ const RoomPage = () => {
     }
 
     const handleRoomClick = (room) => {
-        navigate(`/room/${room.roomId}`, { state: { room } });
+        if (room.roomPassword && room.roomPassword.trim() !== '') {
+            setSelectedRoom(room);
+            setPasswordModalOpen(true);
+        } else {
+            enterRoom(room);
+        }
+    };
+
+    const enterRoom = (room) => {
+        if (room.roomType === 'voice') {
+            navigate(`/voicechat/${room.roomNum}`, { state: { roomInfo: room } });
+        } else {
+            navigate(`/textchat/${room.roomNum}`, { state: { roomInfo: room } });
+        }
+    };
+
+    const handlePasswordConfirm = (enteredPassword) => {
+        if (enteredPassword === selectedRoom.roomPassword) {
+            enterRoom(selectedRoom);
+        } else {
+            alert('비밀번호가 틀렸습니다.');
+        }
     };
 
     const handleCreateRoom = () => {
@@ -111,9 +138,17 @@ const RoomPage = () => {
     const handleRoomCreated = (newRoom) => {
         const updatedRooms = [
             {
-                roomId: newRoom.roomId,
+                roomNum: newRoom.roomNum,
                 roomTitle: newRoom.roomTitle,
+                roomContent: newRoom.roomContent,
+                roomType: newRoom.roomType,
+                gameName: newRoom.gameName,
                 roomMasterId: newRoom.roomMasterId,
+                roomStatus: newRoom.roomStatus,
+                roomCapacityLimit: newRoom.roomCapacityLimit,
+                roomCreateAt: newRoom.roomCreateAt,
+                roomParticipantIds: newRoom.roomParticipantIds,
+                roomPassword: newRoom.roomPassword,
                 // 필요한 다른 속성들도 여기에 추가
             },
             ...rooms
@@ -160,7 +195,7 @@ const RoomPage = () => {
                         <div className="fixed top-10 left-10 flex justify-center items-start z-1">
                             <div ref={friendsModalBackground} className="bg-customFriendBg p-4 w-96 h-80 rounded-xl shadow-lg">
                                 <div className="flex items-center justify-between">
-                                <h2 className="text-white text-xl mb-4">친구 목록</h2>
+                                    <h2 className="text-white text-xl mb-4">친구 목록</h2>
                                     <AiOutlineUserAdd className="w-10 h-10 mb-2"/>
                                 </div>
                                 <hr className="mb-4"/>
@@ -189,15 +224,11 @@ const RoomPage = () => {
                 <h1 className="text-center sm:text-left">방 목록</h1>
             </div>
             <div className="flex-1 p-8 bg-customMainBg overflow-y-auto">
-                <div className="flex justify-end sm:mr-80 lg:mr-80 xl:mr-80 mb-4">
+                <div className="flex justify-end sm:mr-60 lg:mr-60 xl:mr-72 mb-4">
                     <button
                         onClick={handleCreateRoom}
-                        className="text-xl text-white bg-customBoardBg p-2 rounded-xl w-48 mr-4"
-                    >방 만들기</button>
-                    <button
-                        onClick={handleWrite}
                         className="text-xl text-white bg-customBoardBg p-2 rounded-xl w-48"
-                    >게시글 쓰기</button>
+                    >방 만들기</button>
                 </div>
                 <div className="mb-8">
                     {rooms.map((room, index) => (
@@ -240,6 +271,12 @@ const RoomPage = () => {
                 <CreateRoomModal
                     onClose={handleCloseCreateRoomModal}
                     onRoomCreated={handleRoomCreated}
+                />
+            )}
+            {passwordModalOpen && (
+                <PasswordModal
+                    onClose={() => setPasswordModalOpen(false)}
+                    onConfirm={handlePasswordConfirm}
                 />
             )}
         </div>

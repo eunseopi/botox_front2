@@ -22,9 +22,12 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
         e.preventDefault();
         const newRoom = {
             ...roomData,
-            roomId: Math.floor(Math.random() * 1000000).toString(),
+            roomNum: Math.floor(Math.random() * 1000000).toString(),
             roomMasterId: "방장", // 실제 구현에서는 로그인한 사용자의 ID를 사용해야 합니다.
-            chatType: roomData.roomType === 'voice' ? 'VoiceChat' : 'TextChat'
+            roomStatus: true,
+            roomCreateAt: new Date().toISOString(),
+            chatType: roomData.roomType === 'voice' ? 'VoiceChat' : 'TextChat',
+            roomPassword: roomData.roomPassword,
         };
 
         onRoomCreated(newRoom);

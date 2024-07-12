@@ -7,6 +7,8 @@ import SignUpPage from "./pages/loginpage/SignUpPage";
 import WritePage from "./pages/postpage/WritePage";
 import PostDetailPage from "./pages/postpage/PostDetailPage";
 import RoomPage from "./pages/roompage/RoomPage";
+import VoiceChat from "./pages/roompage/voicechat/VoiceChat";
+import TextChat from "./pages/roompage/textchat/TextChat";
 
 function App() {
   return (
@@ -19,6 +21,8 @@ function App() {
             <Route path="/write" element={<WritePage />}/>
             <Route path="/post/:id" element={<PostDetailPage/>}/>
             <Route path="/room" element={<RoomPage/>}/>
+            <Route path='/voicechat/:id' element={<VoiceChat/>}/>
+            <Route path='/textchat/:id' element={<TextChat/>}/>
         </Routes>
     </Router>
   );

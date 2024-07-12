@@ -1,7 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import './TextChatRoom.css';
-import Message from '../img/message.png';
-import egg from '../img/egg.png';
 import { useNavigate } from "react-router-dom";
 
 const Chat = (function () {
@@ -118,47 +115,31 @@ const TextChat = () => {
 
     const navigate = useNavigate();
     return (
-        <div className="chat_wrap">
-            <img className="message_img" src={Message} alt="message"/>
-            <div className="header">협곡 인원 구합니다. (3/5)</div>
-            <div className="chat" ref={chatContainerRef}>
-                <ul>
+        <div className="bg-gray-900 text-white rounded-2xl p-4">
+            <div className="text-center text-xl font-bold mb-4">협곡 인원 구합니다. (3/5)</div>
+            <div className="overflow-y-auto h-96" ref={chatContainerRef}>
+                <ul className="space-y-4">
                     {messages.map((msg, index) => (
-                        <li key={index} className={msg.isMyMessage ? "right" : "left"}>
-                            <div className="sender"><span>{msg.senderName}</span></div>
-                            <div className="message"><span>{msg.message}</span></div>
+                        <li key={index} className={`flex ${msg.isMyMessage ? "justify-end" : "justify-start"}`}>
+                            <div className="bg-white text-black p-2 rounded-lg">
+                                <div className="font-bold">{msg.senderName}</div>
+                                <div>{msg.message}</div>
+                            </div>
                         </li>
                     ))}
                 </ul>
             </div>
-            <div className="user-container">
-                <h3 className="user-title">참가중인 유저</h3>
-                <div className="user-list">
-                    <p><img className="user-icon" src={egg} alt="egg"/>user1</p>
-                    <p><img className="user-icon" src={egg} alt="egg"/>user2</p>
+            <div className="flex justify-between mt-4">
+                <div className="flex-1">
+                    <textarea ref={textareaRef} placeholder="채팅을 입력해주세요." className="w-full p-2 rounded-lg bg-gray-700 border border-gray-600"></textarea>
+                </div>
+                <div className="flex items-center ml-4">
+                    <button onClick={handleSendMessage} className="bg-blue-500 text-white py-2 px-4 rounded-lg">전송</button>
                 </div>
             </div>
-            <div className="chat-control">
-                <div className="input-div">
-                    <textarea ref={textareaRef} placeholder="채팅을 입력해주세요."></textarea>
-                    <button onClick={handleSendMessage}>전송</button>
-                </div>
-                <div className="button-container">
-                    <button className="exit-button" onClick={handleExit}>나가기</button>
-                    <button className="report-button" onClick={handleReport}>신고하기</button>
-                </div>
-            </div>
-            <div className="chat format">
-                <ul>
-                    <li>
-                        <div className="sender">
-                            <span></span>
-                        </div>
-                        <div className="message">
-                            <span></span>
-                        </div>
-                    </li>
-                </ul>
+            <div className="flex justify-between mt-4">
+                <button className="bg-red-500 text-white py-2 px-4 rounded-lg" onClick={handleExit}>나가기</button>
+                <button className="bg-yellow-500 text-white py-2 px-4 rounded-lg" onClick={handleReport}>신고하기</button>
             </div>
         </div>
     );
