@@ -7,89 +7,13 @@ import report from '../../../images/report.png';
 import friend from '../../../images/friend.png';
 import { FaArrowLeft } from 'react-icons/fa6';
 
-const Chat = (function () {
-    const myName = "blue";
-    function init() {
-        document.addEventListener('keydown', function (e) {
-            if (e.keyCode === 13 && !e.shiftKey) {
-                e.preventDefault();
-                const message = document.querySelector('div.input-div textarea').value;
-                sendMessage(message);
-                focusTextarea();
-            }
-        });
-    }
-
-    function createMessageTag(LR_className, senderName, message) {
-        let chatLi = document.querySelector('div.chat.format ul li').cloneNode(true);
-        chatLi.classList.add(LR_className);
-        chatLi.querySelector('.sender span').textContent = senderName;
-        chatLi.querySelector('.message span').textContent = message;
-        return chatLi;
-    }
-
-    function appendMessageTag(LR_className, senderName, message) {
-        const chatLi = createMessageTag(LR_className, senderName, message);
-        document.querySelector('div.chat:not(.format) ul').appendChild(chatLi);
-        document.querySelector('div.chat').scrollTop = document.querySelector('div.chat').scrollHeight;
-    }
-
-    function sendMessage(message) {
-        if (message.trim() !== "") {
-            const data = {
-                "senderName": "은섭",
-                "message": message
-            };
-            appendMessageTag("right", data.senderName, data.message);
-            clearTextarea();
-            simulateResponse();
-        }
-    }
-
-    function clearTextarea() {
-        document.querySelector('div.input-div textarea').value = '';
-    }
-
-    function focusTextarea() {
-        document.querySelector('div.input-div textarea').focus();
-    }
-
-    function getRandomResponse() {
-        const responses = [
-            "네, 알겠습니다.",
-            "고마워요!",
-            "그렇군요!",
-            "무슨 말인지 잘 몰라요.",
-            "저도 그렇게 생각해요.",
-            "정말로요?",
-            "그래요?",
-            "네, 알겠어요.",
-            "와우!",
-            "멋져요!"
-        ];
-
-        const randomIndex = Math.floor(Math.random() * responses.length);
-        return responses[randomIndex];
-    }
-
-    function simulateResponse() {
-        const senderName = "모르는 사람";
-        const message = getRandomResponse();
-        appendMessageTag("left", senderName, message);
-    }
-
-    return {
-        init: init,
-        sendMessage: sendMessage
-    };
-})();
-
 function VoiceChat() {
     const navigate = useNavigate();
     const location = useLocation();
     const roomInfo = location.state?.roomInfo || {};
     const textareaRef = useRef(null);
     const [inUsers, setInUsers] = useState([]);
+    const [messages, setMessages] = useState([]);
 
     useEffect(() => {
         const dummyUsers = Array(roomInfo.roomCapacityLimit).fill().map((_, index) => ({
@@ -100,9 +24,36 @@ function VoiceChat() {
     }, [roomInfo.roomCapacityLimit]);
 
     const handleSendMessage = () => {
-        const message = textareaRef.current.value;
-        if (message.trim() !== "") {
+        const content = textareaRef.current.value.trim();
+        if (content !== "") {
+            const newMessage = {
+                id: Date.now(),
+                senderId: 1,
+                senderName: "나",
+                content: content,
+                timestamp: new Date().toISOString(),
+            };
+            setMessages(prevMessages => [...prevMessages, newMessage]);
             textareaRef.current.value = "";
+
+            // 나중에 API 호출 할 코드.
+            /*
+           fetch('/api/chats', {
+               method: 'POST',
+               headers: {
+                   'Authorization': 'Bearer <your-token>',
+                   'Content-Type': 'application/json'
+               },
+               body: JSON.stringify({
+                   roomId: roomInfo.id,
+                   senderId: 1, // 실제 사용자 ID로 대체해야 합니다
+                   content: content
+               })
+           })
+           .then(response => response.json())
+           .then(data => console.log(data))
+           .catch(error => console.error('Error:', error));
+           */
         }
     };
 
@@ -150,10 +101,26 @@ function VoiceChat() {
                 </div>
             </div>
             <div className="absolute bottom-5 w-11/12 h-1/3 ml-8 bg-customFriendBg p-4 rounded-2xl">
+                <div className="h-2/3 overflow-y-auto mb-4">
+                    {messages.map(message => (
+                        <div key={message.id} className={`mb-2 ${message.senderId === 1 ? 'text-right' : 'text-left'}`}>
+                            <span className="font-bold mr-5">{message.senderName}</span>
+                            <span>{message.content}</span>
+                        </div>
+                    ))}
+                </div>
                 <div className="flex justify-between mt-4">
                     <div className="flex-1">
-                        <textarea ref={textareaRef} placeholder="채팅을 입력해주세요."
-                                  className="absolute w-11/12 h-1/6 p-2 bottom-2 rounded-lg bg-customIdBg text-white border-none border-gray-600"></textarea>
+                        <textarea ref={textareaRef}
+                                  placeholder="채팅을 입력해주세요."
+                                  className="absolute w-11/12 h-1/6 p-2 bottom-2 rounded-lg bg-customIdBg text-white border-none border-gray-600"
+                                  onKeyPress={(e) => {
+                                      if (e.key === 'Enter' && !e.shiftKey) {
+                                          e.preventDefault();
+                                          handleSendMessage();
+                                      }
+                        }}
+                        ></textarea>
                     </div>
                     <div className="flex items-center">
                         <button onClick={handleSendMessage} className="absolute right-5 h-14 w-20 bottom-2 bg-yellow-400 opacity-70 text-black py-2 px-4 rounded-lg">전송

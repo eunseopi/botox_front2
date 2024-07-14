@@ -1,145 +1,174 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from "react-router-dom";
-
-const Chat = (function () {
-    const myName = "blue";
-    function init() {
-        document.addEventListener('keydown', function (e) {
-            if (e.keyCode === 13 && !e.shiftKey) {
-                e.preventDefault();
-                const message = document.querySelector('div.input-div textarea').value;
-                sendMessage(message);
-                focusTextarea();
-            }
-        });
-    }
-
-    function createMessageTag(LR_className, senderName, message) {
-        let chatLi = document.querySelector('div.chat.format ul li').cloneNode(true);
-        chatLi.classList.add(LR_className);
-        chatLi.querySelector('.sender span').textContent = senderName;
-        chatLi.querySelector('.message span').textContent = message;
-        return chatLi;
-    }
-
-    function appendMessageTag(LR_className, senderName, message) {
-        const chatLi = createMessageTag(LR_className, senderName, message);
-        document.querySelector('div.chat:not(.format) ul').appendChild(chatLi);
-        document.querySelector('div.chat').scrollTop = document.querySelector('div.chat').scrollHeight;
-    }
-
-    function sendMessage(message) {
-        if (message.trim() !== "") { // 빈 문자열이 아닌 경우에만 메시지를 전송
-            const data = {
-                "senderName": "은섭",
-                "message": message
-            };
-            appendMessageTag("right", data.senderName, data.message);
-            clearTextarea(); // 메시지를 보낸 후에 입력 칸 비우기
-            simulateResponse(); // 상대방의 응답 시뮬레이션
-        }
-    }
-
-    function clearTextarea() {
-        document.querySelector('div.input-div textarea').value = '';
-    }
-
-    function focusTextarea() {
-        document.querySelector('div.input-div textarea').focus();
-    }
-
-    function getRandomResponse() {
-        const responses = [
-            "네, 알겠습니다.",
-            "고마워요!",
-            "그렇군요!",
-            "무슨 말인지 잘 몰라요.",
-            "저도 그렇게 생각해요.",
-            "정말로요?",
-            "그래요?",
-            "네, 알겠어요.",
-            "와우!",
-            "멋져요!"
-        ];
-
-        const randomIndex = Math.floor(Math.random() * responses.length);
-        return responses[randomIndex];
-    }
-
-    function simulateResponse() {
-        const senderName = "모르는 사람"; // 대답할 상대방의 이름
-        const message = getRandomResponse();
-        appendMessageTag("left", senderName, message); // left는 상대방, right는 본인의 메시지를 의미하는 클래스명입니다.
-    }
-
-    return {
-        init: init,
-        sendMessage : sendMessage
-    };
-})();
+import {useLocation, useNavigate} from "react-router-dom";
+import { FaArrowLeft, FaUser } from 'react-icons/fa';
+import title from '../..//../images/title.png'
 
 const TextChat = () => {
     const [messages, setMessages] = useState([]);
     const chatContainerRef = useRef(null);
     const textareaRef = useRef(null);
+    const navigate = useNavigate();
+    const location = useLocation();
+    const roomInfo = location.state?.roomInfo || {};
+    const [inUsers, setInUsers] = useState([]);
 
     useEffect(() => {
-        Chat.init();
-    }, []);
-
-    useEffect(() => {
-        const chatContainer = chatContainerRef.current;
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-        if (chatContainer.scrollHeight > chatContainer.clientHeight) {
-            chatContainer.style.overflowY = 'scroll';
-        } else {
-            chatContainer.style.overflowY = 'hidden';
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
     }, [messages]);
 
+    useEffect(() => {
+        // 실제 사용할 때 API 가져와서 바꾸기.
+        const dummyUsers = Array(roomInfo.roomCapacityLimit).fill().map((_, index) => ({
+            id: index + 1,
+            name: index === 0 ? "방장" : `사용자${index + 1}`
+        }));
+        setInUsers(dummyUsers.slice(0, Math.floor(Math.random() * roomInfo.roomCapacityLimit) + 1));
+    }, [roomInfo.roomCapacityLimit]);
+
     const handleSendMessage = () => {
-        const message = textareaRef.current.value;
-        if (message.trim() !== "") {
-            Chat.sendMessage(message);
-            textareaRef.current.value = ""; // 입력칸 클리어
+        if (textareaRef.current) {
+            const message = textareaRef.current.value.trim();
+            if (message !== "") {
+                setMessages(prevMessages => [...prevMessages, { isMyMessage: true, content: message }]);
+                textareaRef.current.value = "";
+                simulateResponse();
+            }
         }
     };
 
+    // 나중에 API 호출 할 코드.
+    /*
+    fetch('/api/chats', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer <your-token>',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            roomId: roomInfo.id,
+            senderId: 1, // 실제 사용자 ID로 대체해야 합니다
+            content: content
+        })
+    })
+    .then(response => response.json())
+    .then(data => console.log(data))
+    .catch(error => console.error('Error:', error));
+    */
+
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage();
+        }
+    };
+
+    const simulateResponse = () => {
+        setTimeout(() => {
+            const responses = [
+                "네, 알겠습니다.",
+                "좋아요!",
+                "그렇군요.",
+                "알겠습니다.",
+                "네, 그렇게 하죠.",
+            ];
+            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+            setMessages(prevMessages => [...prevMessages, { isMyMessage: false, content: randomResponse }]);
+        }, 1000);
+    };
+
+
+    // const handleSendMessage = () => {
+    //     if (textareaRef.current) {
+    //         const message = textareaRef.current.value.trim();
+    //         if (message !== "") {
+    //             const newMessage = {
+    //                 id: Date.now(),
+    //                 senderId: 1, // 임시로 고정된 senderId 사용
+    //                 senderName: "나", // 임시로 고정된 이름 사용
+    //                 content: message,
+    //                 timestamp: new Date().toISOString(),
+    //             };
+    //             setMessages(prevMessages => [...prevMessages, newMessage]);
+    //             textareaRef.current.value = "";
+    //         }
+    //     }
+    // };
     const handleExit = () => {
-        navigate("/RoomList");
+        navigate("/room");
     };
 
     const handleReport = () => {
-        // 신고하기 버튼 클릭 시 동작할 코드 작성
+        alert("신고가 접수되었습니다.");
     };
 
-    const navigate = useNavigate();
     return (
-        <div className="bg-gray-900 text-white rounded-2xl p-4">
-            <div className="text-center text-xl font-bold mb-4">협곡 인원 구합니다. (3/5)</div>
-            <div className="overflow-y-auto h-96" ref={chatContainerRef}>
-                <ul className="space-y-4">
-                    {messages.map((msg, index) => (
-                        <li key={index} className={`flex ${msg.isMyMessage ? "justify-end" : "justify-start"}`}>
-                            <div className="bg-white text-black p-2 rounded-lg">
-                                <div className="font-bold">{msg.senderName}</div>
-                                <div>{msg.message}</div>
+        <div className="bg-customMainBg text-white h-screen flex flex-col">
+            <div className="bg-customMainBg p-4 flex items-center">
+                <FaArrowLeft className="text-2xl mr-4" onClick={handleExit} />
+                <div className="text-xl font-bold flex-grow text-center">{roomInfo.roomTitle || "방 제목 없음"}</div>
+                <div className="flex items-center ml-auto">
+                    <div className="text-lg">{inUsers.length}</div>
+                    <div className="text-lg">/{roomInfo.roomCapacityLimit || 5}</div>
+                </div>
+            </div>
+
+            <div className="flex flex-grow">
+                <div className="w-3/4 p-4">
+                    <div className="bg-customIdBg rounded-2xl p-4 mb-4">
+                        <div className="flex items-center mb-2">
+                            <img src={title} alt="Title" className="w-8 h-8 mr-2" />
+                            <span className="font-bold">공지사항</span>
+                        </div>
+                        <p>비매너시 신고 신고 누적 시 정지</p>
+                    </div>
+
+                    <div className="bg-customIdBg rounded-2xl p-4 h-3/4 overflow-y-auto" ref={chatContainerRef}>
+                        {messages.map((msg, index) => (
+                            <div key={index} className={`mb-4 flex ${msg.isMyMessage ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-3/4 p-2 text-black rounded-lg ${msg.isMyMessage ? 'bg-yellow-200' : 'bg-white'}`}>
+                                    {msg.content}
+                                </div>
                             </div>
-                        </li>
-                    ))}
-                </ul>
-            </div>
-            <div className="flex justify-between mt-4">
-                <div className="flex-1">
-                    <textarea ref={textareaRef} placeholder="채팅을 입력해주세요." className="w-full p-2 rounded-lg bg-gray-700 border border-gray-600"></textarea>
+                        ))}
+                    </div>
+
+                    <div className="mt-4 flex">
+                        <textarea
+                            ref={textareaRef}
+                            className="flex-grow bg-customChatBg text-white rounded-2xl p-2 mr-2"
+                            placeholder="메시지를 입력하세요..."
+                            rows="1"
+                            onKeyPress={handleKeyPress}
+                        />
+                        <button
+                            onClick={handleSendMessage}
+                            className="bg-yellow-500 text-black px-4 w-20 rounded-2xl"
+                        >
+                            전송
+                        </button>
+                    </div>
                 </div>
-                <div className="flex items-center ml-4">
-                    <button onClick={handleSendMessage} className="bg-blue-500 text-white py-2 px-4 rounded-lg">전송</button>
+
+                <div className="w-1/4 p-4">
+                    <div className="bg-customIdBg rounded-2xl p-4 mb-4">
+                        <h3 className="font-bold mb-2">참가 중인 유저</h3>
+                        {inUsers.map((user) => (
+                            <div key={user.id} className="flex items-center mb-2">
+                                <FaUser className="mr-2" />
+                                <span>{user.name}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    <button onClick={handleReport} className="bg-yellow-200 text-black py-2 px-4 rounded-lg w-full mb-2">
+                        신고하기
+                    </button>
+                    <button onClick={handleExit} className="bg-red-500 text-white py-2 px-4 rounded-lg w-full">
+                        나가기
+                    </button>
                 </div>
-            </div>
-            <div className="flex justify-between mt-4">
-                <button className="bg-red-500 text-white py-2 px-4 rounded-lg" onClick={handleExit}>나가기</button>
-                <button className="bg-yellow-500 text-white py-2 px-4 rounded-lg" onClick={handleReport}>신고하기</button>
             </div>
         </div>
     );
