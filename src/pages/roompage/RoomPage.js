@@ -11,6 +11,130 @@ import PasswordModal from './modal/PassWordModal'; // PasswordModal 임포트 �
 import { AiOutlineUserAdd } from "react-icons/ai";
 import { FaLock } from 'react-icons/fa';
 
+const ProfileModal = ({ onClose }) => {
+    const [newNickname, setNewNickname] = useState('');
+    const [newProfileImage, setNewProfileImage] = useState(null);
+
+    const handleNicknameChange = (e) => {
+        setNewNickname(e.target.value);
+    };
+
+    const handleProfileImageChange = (e) => {
+        setNewProfileImage(e.target.files[0]);
+    };
+
+    const handleSave = async () => {
+        // 닉네임과 프로필 사진 저장 로직 추가해야됨.
+        // 예를 들어, API를 호출하여 변경 사항을 서버에 저장하기
+        const formData = new FormData();
+        formData.append('nickname', newNickname);
+        if (newProfileImage) {
+            formData.append('profileImage', newProfileImage);
+        }
+
+        try {
+            const response = await fetch('/api/profile/update', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer <your-token>',
+                },
+                body: formData
+            });
+            const data = await response.json();
+            alert('프로필이 업데이트되었습니다.');
+            onClose();
+        } catch (error) {
+            console.error('Error updating profile:', error);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+                <h2 className="text-xl mb-4">프로필 수정</h2>
+                <div className="mb-4">
+                    <label className="block mb-2">닉네임</label>
+                    <input
+                        type="text"
+                        value={newNickname}
+                        onChange={handleNicknameChange}
+                        placeholder="새 닉네임을 입력하세요"
+                        className="w-full p-2 border rounded"
+                    />
+                </div>
+                <div className="mb-4">
+                    <label className="block mb-2">프로필 사진</label>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfileImageChange}
+                        className="w-full p-2 border rounded"
+                    />
+                </div>
+                <button onClick={handleSave} className="w-full bg-blue-500 text-white p-2 rounded mb-4">저장</button>
+                <button onClick={onClose} className="w-full bg-gray-500 text-white p-2 rounded">닫기</button>
+            </div>
+        </div>
+    );
+};
+
+const FriendSearchModal = ({ onClose }) => {
+    const [searchInput, setSearchInput] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+
+    const handleSearch = async () => {
+        // 검색 로직 나중에 추가.
+        // 예를 들어, API를 호출하여 검색 결과를 가져오기
+        // setSearchResults(apiResponse);
+    };
+
+    const handleSendFriendRequest = async (receiverId) => {
+        try {
+            const response = await fetch('/api/friendship/request', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer <your-token>',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    senderId: 1, // 실제 사용자 ID로 대체해야 합니다
+                    receiverId: receiverId
+                })
+            });
+            const data = await response.json();
+            alert(data.message);
+        } catch (error) {
+            console.error('Error sending friend request:', error);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+                <h2 className="text-xl mb-4">친구 추가</h2>
+                <input
+                    type="text"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    placeholder="닉네임을 입력하세요"
+                    className="w-full p-2 border rounded mb-4"
+                />
+                <button onClick={handleSearch} className="w-full bg-blue-500 text-white p-2 rounded mb-4">검색</button>
+                <div>
+                    {searchResults.map((result) => (
+                        <div key={result.id} className="flex items-center justify-between mb-2">
+                            <span>{result.nickname}</span>
+                            <button onClick={() => handleSendFriendRequest(result.id)} className="bg-green-500 text-white p-2 rounded">추가</button>
+                        </div>
+                    ))}
+                </div>
+                <button onClick={onClose} className="w-full bg-gray-500 text-white p-2 rounded">닫기</button>
+            </div>
+        </div>
+    );
+};
+
+
 const GameCard = ({ room, onClick }) => (
     <div className="bg-customBoardBg rounded-lg p-4 mb-4 shadow-lg m-auto w-8/12 cursor-pointer"
          onClick={() => onClick(room)}>
@@ -46,6 +170,12 @@ const RoomPage = () => {
     const [createRoomModalOpen, setCreateRoomModalOpen] = useState(false);
     const [passwordModalOpen, setPasswordModalOpen] = useState(false); // 비밀번호 모달 상태 추가
     const [selectedRoom, setSelectedRoom] = useState(null); // 선택된 방 상태 추가
+    // const [friendSearchInput, setFriendSearchInput] = useState('');
+    // const [friendSearchResults, setFriendSearchResults] = useState([]);
+    const [nickname, setNickname] = useState('');
+    const [profileImage, setProfileImage] = useState(null);
+    const [showProfileModal, setShowProfileModal] = useState(false);
+    const [showFriendSearchModal, setShowFriendSearchModal] = useState(false);
     const modalBackground = useRef(null);
     const friendsModalBackground = useRef(null);
     const navigate = useNavigate();
@@ -100,6 +230,16 @@ const RoomPage = () => {
 
     const handleWrite = () => {
         navigate('/write')
+    }
+
+    const handleLogoutBtn = () => {
+        // localStorage.removeItem('token');
+        navigate('/login');
+    }
+
+    const handleMyPageClick = () => {
+        setShowProfileModal(true);
+        setModalOpen(false);
     }
 
     const handleRoomClick = (room) => {
@@ -165,6 +305,8 @@ const RoomPage = () => {
         };
     }, [handleClickOutside]);
 
+
+
     return (
         <div className="flex flex-col h-full">
             <div className="w-full bg-customTopNav h-10">
@@ -179,11 +321,11 @@ const RoomPage = () => {
                                     <img src={profile} alt="Profile" className="w-20 h-20 p-2 mr-2 rounded-full opacity-100"/>
                                     <div>
                                         <p className="text-xl text-center mb-2">뜨끈한 두유님</p>
-                                        <p className="ml-14 text-gray-500">로그아웃</p>
+                                        <p className="ml-14 text-gray-500" onClick={handleLogoutBtn}>로그아웃</p>
                                     </div>
                                 </div>
                                 <div className="text-center">
-                                    <p className="bg-gray-200 mb-2">마이페이지</p>
+                                    <p className="bg-gray-200 mb-2 cursor-pointer" onClick={handleMyPageClick}>마이페이지</p>
                                     <p className="bg-gray-200 mb-2 cursor-pointer" onClick={handleClickHome}>홈</p>
                                     <p className="bg-gray-200 mb-2 cursor-pointer" onClick={handleBoardClick}>게시판</p>
                                     <p className="bg-gray-200 cursor-pointer" onClick={handleFriendClick}>친구목록</p>
@@ -196,7 +338,7 @@ const RoomPage = () => {
                             <div ref={friendsModalBackground} className="bg-customFriendBg p-4 w-96 h-80 rounded-xl shadow-lg">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-white text-xl mb-4">친구 목록</h2>
-                                    <AiOutlineUserAdd className="w-10 h-10 mb-2"/>
+                                    <AiOutlineUserAdd className="w-10 h-10 mb-2" onClick={() => setShowFriendSearchModal(true)}/>
                                 </div>
                                 <hr className="mb-4"/>
                                 <div className="space-y-2">
@@ -278,6 +420,14 @@ const RoomPage = () => {
                     onClose={() => setPasswordModalOpen(false)}
                     onConfirm={handlePasswordConfirm}
                 />
+            )}
+            {showFriendSearchModal && ( // 추가된 코드
+                <FriendSearchModal
+                    onClose={() => setShowFriendSearchModal(false)}
+                />
+            )}
+            {showProfileModal && (
+                <ProfileModal onClose={() => setShowProfileModal(false)} />
             )}
         </div>
     );
