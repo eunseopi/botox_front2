@@ -9,74 +9,8 @@ import search from "../../images/search.png";
 import CreateRoomModal from './CreateRoomModal';
 import PasswordModal from './modal/PassWordModal'; // PasswordModal 임포트 추가
 import { AiOutlineUserAdd } from "react-icons/ai";
-import { FaLock } from 'react-icons/fa';
-
-const ProfileModal = ({ onClose }) => {
-    const [newNickname, setNewNickname] = useState('');
-    const [newProfileImage, setNewProfileImage] = useState(null);
-
-    const handleNicknameChange = (e) => {
-        setNewNickname(e.target.value);
-    };
-
-    const handleProfileImageChange = (e) => {
-        setNewProfileImage(e.target.files[0]);
-    };
-
-    const handleSave = async () => {
-        // 닉네임과 프로필 사진 저장 로직 추가해야됨.
-        // 예를 들어, API를 호출하여 변경 사항을 서버에 저장하기
-        const formData = new FormData();
-        formData.append('nickname', newNickname);
-        if (newProfileImage) {
-            formData.append('profileImage', newProfileImage);
-        }
-
-        try {
-            const response = await fetch('/api/profile/update', {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer <your-token>',
-                },
-                body: formData
-            });
-            const data = await response.json();
-            alert('프로필이 업데이트되었습니다.');
-            onClose();
-        } catch (error) {
-            console.error('Error updating profile:', error);
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-                <h2 className="text-xl mb-4">프로필 수정</h2>
-                <div className="mb-4">
-                    <label className="block mb-2">닉네임</label>
-                    <input
-                        type="text"
-                        value={newNickname}
-                        onChange={handleNicknameChange}
-                        placeholder="새 닉네임을 입력하세요"
-                        className="w-full p-2 border rounded"
-                    />
-                </div>
-                <div className="mb-4">
-                    <label className="block mb-2">프로필 사진</label>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleProfileImageChange}
-                        className="w-full p-2 border rounded"
-                    />
-                </div>
-                <button onClick={handleSave} className="w-full bg-blue-500 text-white p-2 rounded mb-4">저장</button>
-                <button onClick={onClose} className="w-full bg-gray-500 text-white p-2 rounded">닫기</button>
-            </div>
-        </div>
-    );
-};
+import {FaClipboard, FaHome, FaLock, FaSignOutAlt, FaUser, FaUserFriends} from 'react-icons/fa';
+import ProfileModal from "./modal/ProfileModal";
 
 const FriendSearchModal = ({ onClose }) => {
     const [searchInput, setSearchInput] = useState('');
@@ -176,10 +110,41 @@ const RoomPage = () => {
     const [profileImage, setProfileImage] = useState(null);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [showFriendSearchModal, setShowFriendSearchModal] = useState(false);
+    const [userData, setUserData] = useState(null);
     const modalBackground = useRef(null);
     const friendsModalBackground = useRef(null);
     const navigate = useNavigate();
     const location = useLocation();
+
+
+    useEffect(() => {
+        fetchUserData();
+    }, []);
+
+    const fetchUserData = async () => {
+        try {
+            // const response = await fetch(`/api/users/${userId}`, {
+            //     headers: {
+            //         'Authorization': `Bearer ${localStorage.getItem('token')}`
+            //     }
+            // });
+            // const data = await response.json();
+            // setUserData(data);
+
+            // 임시 더미 데이터
+            setUserData({
+                id: 1,
+                userId: "user123",
+                nickname: "쿨한두유",
+                profile: "안녕하세요! 게임을 좋아하는 쿨한두유입니다.",
+                profilePicUrl: "https://example.com/profile.jpg",
+                temperatureLevel: 36,
+                status: "online"
+            });
+        } catch (error) {
+            console.error('Error fetching user data:', error);
+        }
+    };
 
     useEffect(() => {
         // LocalStorage에서 방 목록 가져오기
@@ -314,21 +279,32 @@ const RoomPage = () => {
                     <button type="button" onClick={() => setModalOpen(!modalOpen)}>
                         <img src={menuImage} alt="Menu" className="w-10 h-10 p-2 mr-2"/>
                     </button>
-                    {modalOpen && (
+                    {modalOpen && userData && (
                         <div className="fixed top-10 left-10 flex justify-center items-start">
-                            <div ref={modalBackground} className="bg-white opacity-70 p-4 w-60 h-60 inline-block rounded-xl shadow-lg">
-                                <div className="flex items-center">
-                                    <img src={profile} alt="Profile" className="w-20 h-20 p-2 mr-2 rounded-full opacity-100"/>
+                            <div ref={modalBackground} className="bg-white p-4 w-64 rounded-xl shadow-lg">
+                                <div className="flex items-center mb-4">
+                                    <img src={userData.profilePicUrl} alt="Profile" className="w-16 h-16 rounded-full mr-4"/>
                                     <div>
-                                        <p className="text-xl text-center mb-2">뜨끈한 두유님</p>
-                                        <p className="ml-14 text-gray-500" onClick={handleLogoutBtn}>로그아웃</p>
+                                        <p className="text-xl font-semibold">{userData.nickname}</p>
+                                        <p className="text-sm text-gray-500">{userData.status}</p>
                                     </div>
                                 </div>
-                                <div className="text-center">
-                                    <p className="bg-gray-200 mb-2 cursor-pointer" onClick={handleMyPageClick}>마이페이지</p>
-                                    <p className="bg-gray-200 mb-2 cursor-pointer" onClick={handleClickHome}>홈</p>
-                                    <p className="bg-gray-200 mb-2 cursor-pointer" onClick={handleBoardClick}>게시판</p>
-                                    <p className="bg-gray-200 cursor-pointer" onClick={handleFriendClick}>친구목록</p>
+                                <div className="space-y-2">
+                                    <button onClick={handleMyPageClick} className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded">
+                                        <FaUser className="inline-block mr-2" /> 마이페이지
+                                    </button>
+                                    <button onClick={handleClickHome} className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded">
+                                        <FaHome className="inline-block mr-2" /> 홈
+                                    </button>
+                                    <button onClick={handleBoardClick} className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded">
+                                        <FaClipboard className="inline-block mr-2" /> 게시판
+                                    </button>
+                                    <button onClick={handleFriendClick} className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded">
+                                        <FaUserFriends className="inline-block mr-2" /> 친구목록
+                                    </button>
+                                    <button onClick={handleLogoutBtn} className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded text-red-500">
+                                        <FaSignOutAlt className="inline-block mr-2" /> 로그아웃
+                                    </button>
                                 </div>
                             </div>
                         </div>
