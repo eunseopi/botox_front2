@@ -3,8 +3,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import menuImage from "../../images/menu.png";
 import roomIcon from '../../images/roomIcon.png';
 import egg from '../../images/egg.png';
-import good from '../../images/good.jpeg';
-import profile from '../../images/profile.jpg'
 import search from "../../images/search.png";
 import CreateRoomModal from './CreateRoomModal';
 import PasswordModal from './modal/PassWordModal'; // PasswordModal 임포트 추가
@@ -135,7 +133,7 @@ const RoomPage = () => {
             setUserData({
                 id: 1,
                 userId: "user123",
-                nickname: "쿨한두유",
+                nickname: "삼육두유",
                 profile: "안녕하세요! 게임을 좋아하는 쿨한두유입니다.",
                 profilePicUrl: "https://example.com/profile.jpg",
                 temperatureLevel: 36,
