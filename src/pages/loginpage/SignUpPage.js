@@ -23,12 +23,12 @@ const SignUpPage = () => {
                 return;
             }
 
-            const response = await fetch('/api/users/signup', {
+            const response = await fetch('http://43.203.238.195:8080/api/users/signup', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({email, password })
+                body: JSON.stringify({userId: email, password1 : password, password2: password, userNickname: nickname })
             });
 
             if(response.status === 200) {
