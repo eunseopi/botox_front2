@@ -14,6 +14,7 @@ import {Link} from "react-router-dom";
 const MainPage = () => {
     const [userCount, setUserCount] = React.useState(0);
     const [gameName, setGameName] = React.useState('');
+    const [isLoggedIn, setIsLoggedIn] = React.useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -26,6 +27,20 @@ const MainPage = () => {
         return () => clearInterval(intervalId);
     }, []);
 
+    useEffect(() => {
+        const loggedIn = localStorage.getItem('loggedIn') === 'true';
+        setIsLoggedIn(loggedIn);
+    })
+
+    const handleAuth = () => {
+        if (isLoggedIn){
+            localStorage.setItem('isLoggedIn', 'false');
+            setIsLoggedIn(false);
+        } else {
+            navigate('/login');
+        }
+    }
+
     const handleInRoom = () => {
         navigate('/room');
     }
@@ -36,7 +51,16 @@ const MainPage = () => {
                 <nav className="flex items-center justify-between px-4">
                     <img src={menuImage} alt="Menu" className="w-10 h-10 p-2 mr-2" />
                     <div className="flex items-center">
-                        <a href="/login" className="text-white mr-4 hover:text-gray-300">로그인</a>
+                        <a
+                            href="#"
+                            onClick={(e)=>{
+                                e.preventDefault();
+                                handleAuth();
+                            }}
+                            className="text-white mr-4 hover:text-gray-300"
+                        >
+                            {isLoggedIn ? '로그아웃' : '로그인'}
+                        </a>
                         <a href="/board" className="text-white hover:text-gray-300">게시글</a>
                     </div>
                 </nav>
