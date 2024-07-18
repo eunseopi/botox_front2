@@ -10,7 +10,7 @@ const LoginPage = () => {
 
     const handleLogin = async () => {
         try {
-            const response = await fetch('http://43.203.238.195:8080/api/users/login', {
+            const response = await fetch('https://botox-chat.site/api/users/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -54,7 +54,6 @@ const LoginPage = () => {
             alert('로그인 중 에러가 발생했습니다.');
         }
     };
-
 
 
 
