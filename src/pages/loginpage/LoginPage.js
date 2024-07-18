@@ -21,22 +21,31 @@ const LoginPage = () => {
                 }),
             });
 
+            console.log('Response status:', response.status);
+
             if (response.ok) {
                 const data = await response.json();
+                console.log('Response data:', data);
+
                 if (data.accessToken) {
                     localStorage.setItem('token', data.accessToken);
+                    console.log('Token saved to localStorage:', data.accessToken);
                     navigate('/main');
                 } else {
+                    console.log('로그인에 실패했습니다. 토큰이 제공되지 않았습니다.');
                     alert('로그인에 실패했습니다. 토큰이 제공되지 않았습니다.');
                 }
             } else if (response.status === 403) {
+                console.log('로그인에 실패했습니다. 접근이 거부되었습니다.');
                 alert('로그인에 실패했습니다. 접근이 거부되었습니다.');
             } else {
                 const errorText = await response.text();
                 try {
                     const errorData = JSON.parse(errorText);
+                    console.log('로그인에 실패했습니다.', errorData);
                     alert(`로그인에 실패했습니다. ${errorData.message}`);
                 } catch (e) {
+                    console.log('로그인에 실패했습니다. 응답 본문:', errorText);
                     alert(`로그인에 실패했습니다. 응답 본문: ${errorText}`);
                 }
             }
@@ -45,6 +54,7 @@ const LoginPage = () => {
             alert('로그인 중 에러가 발생했습니다.');
         }
     };
+
 
 
 
