@@ -29,15 +29,23 @@ const LoginPage = () => {
                 } else {
                     alert('로그인에 실패했습니다. 토큰이 제공되지 않았습니다.');
                 }
+            } else if (response.status === 403) {
+                alert('로그인에 실패했습니다. 접근이 거부되었습니다.');
             } else {
-                const errorData = await response.json();
-                alert(`로그인에 실패했습니다. ${errorData.message}`);
+                const errorText = await response.text();
+                try {
+                    const errorData = JSON.parse(errorText);
+                    alert(`로그인에 실패했습니다. ${errorData.message}`);
+                } catch (e) {
+                    alert(`로그인에 실패했습니다. 응답 본문: ${errorText}`);
+                }
             }
         } catch (error) {
             console.error('로그인 중 에러 발생:', error);
             alert('로그인 중 에러가 발생했습니다.');
         }
     };
+
 
 
     const handleSignUp = () => {
