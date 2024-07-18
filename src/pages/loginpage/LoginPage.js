@@ -8,9 +8,30 @@ const LoginPage = () => {
     const [password, setPassword] = React.useState('');
     const navigate = useNavigate();
 
-    const handleLogin = () => {
-        navigate('/');
-    }
+    const handleLogin = async () => {
+        try {
+            const response = await fetch('http://43.203.238.195:8080/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    username : email,
+                    password: password,
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                localStorage.setItem('token', data.accessToken);
+                navigate('/main');
+            } else {
+                alert('로그인에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('로그인 중 에러 발생:', error);
+        }
+    };
 
     const handleSignUp = () => {
         navigate('/signup');

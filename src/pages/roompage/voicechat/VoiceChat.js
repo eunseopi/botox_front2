@@ -19,7 +19,7 @@ function VoiceChat() {
         const dummyUsers = Array(roomInfo.roomCapacityLimit).fill().map((_, index) => ({
             id: index + 1,
             name: index === 0 ? "방장" : `사용자${index + 1}`
-        }));
+    }));
         setInUsers(dummyUsers.slice(0, Math.floor(Math.random() * roomInfo.roomCapacityLimit) + 1));
     }, [roomInfo.roomCapacityLimit]);
 
@@ -119,7 +119,7 @@ function VoiceChat() {
                                           e.preventDefault();
                                           handleSendMessage();
                                       }
-                        }}
+                                  }}
                         ></textarea>
                     </div>
                     <div className="flex items-center">
