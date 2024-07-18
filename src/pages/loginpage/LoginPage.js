@@ -16,20 +16,26 @@ const LoginPage = () => {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: new URLSearchParams({
-                    username : email,
+                    username: email,
                     password: password,
                 }),
             });
 
             if (response.ok) {
                 const data = await response.json();
-                localStorage.setItem('token', data.accessToken);
-                navigate('/main');
+                if (data.accessToken) {
+                    localStorage.setItem('token', data.accessToken);
+                    navigate('/main');
+                } else {
+                    alert('로그인에 실패했습니다. 토큰이 제공되지 않았습니다.');
+                }
             } else {
-                alert('로그인에 실패했습니다.');
+                const errorData = await response.json();
+                alert(`로그인에 실패했습니다. ${errorData.message}`);
             }
         } catch (error) {
             console.error('로그인 중 에러 발생:', error);
+            alert('로그인 중 에러가 발생했습니다.');
         }
     };
 
