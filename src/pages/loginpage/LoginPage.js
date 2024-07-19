@@ -31,7 +31,7 @@ const LoginPage = () => {
                 if (data.data && data.data.accessToken) {
                     localStorage.setItem('token', data.data.accessToken);
                     console.log('Token saved to localStorage:', data.data.accessToken);
-                    navigate('/main');
+                    navigate('/');
                 } else {
                     console.log('로그인에 실패했습니다. 토큰이 제공되지 않았습니다.');
                     alert('로그인에 실패했습니다. 토큰이 제공되지 않았습니다.');
