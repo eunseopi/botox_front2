@@ -12,9 +12,6 @@ const LoginPage = () => {
         try {
             const response = await fetch('https://botox-chat.site/api/users/login', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
                 body: new URLSearchParams({
                     username: email,
                     password: password,
