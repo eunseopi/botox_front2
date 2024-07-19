@@ -7,18 +7,12 @@ const SignUpPage = () => {
     const [email, setEmail] = React.useState('');
     const [password, setPassword] = React.useState('');
     const [confirmPassword, setConfirmPassword] = React.useState('');
-    const [nickname, setNickname] = React.useState('');
+    const [nickName, setNickName] = React.useState('');
     const navigate = useNavigate();
 
-    // const handleSignUp = () => {
-    //     navigate('/');
-    // }
-
-
-    // 회원가입 API 나중에 개발.
     const handleSignUp = async () => {
         try {
-            if(password !== confirmPassword) {
+            if (password !== confirmPassword) {
                 alert('비밀번호가 일치하지 않습니다.');
                 return;
             }
@@ -28,14 +22,33 @@ const SignUpPage = () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({userId: email, password1 : password, password2: password, userNickname: nickname })
+                body: JSON.stringify({
+                    userId: email,
+                    password1: password,
+                    password2: password,
+                    userNickName: nickName
+                })
             });
 
-            if(response.status === 200) {
+            console.log('Response status:', response.status);
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Signup success:', data);
                 navigate('/login');
+            } else {
+                const errorText = await response.text();
+                try {
+                    const errorData = JSON.parse(errorText);
+                    console.log('Signup failed:', errorData);
+                    alert(`Signup failed: ${errorData.message}`);
+                } catch (e) {
+                    console.log('Signup failed. Response body:', errorText);
+                    alert(`Signup failed. Response body: ${errorText}`);
+                }
             }
-        }catch(error){
-            console.log('회원가입 중 에러 발생:',error);
+        } catch (error) {
+            console.log('회원가입 중 에러 발생:', error);
             alert('회원가입 중 에러가 발생하였습니다.');
         }
     }
@@ -68,19 +81,18 @@ const SignUpPage = () => {
                     onChange={(e) => {setPassword(e.target.value)}}
                     className="w-full p-2 mb-6 border-0 rounded"
                 />
-                <h3 className={"text-customDarkBlue text-sm mb-2"}>비밀번호 확인</h3>
+                <h3 className="text-customDarkBlue text-sm mb-2">비밀번호 확인</h3>
                 <input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => {setConfirmPassword(e.target.value)}}
-                    className={`w-full p-2 mb-6 border rounded
-                    ${password !== confirmPassword && confirmPassword !== '' ? 'border-red-500' : ''}`}
+                    className={`w-full p-2 mb-6 border rounded ${password !== confirmPassword && confirmPassword !== '' ? 'border-red-500' : ''}`}
                 />
                 <h3 className="text-customDarkBlue text-sm mb-2">닉네임</h3>
                 <input
                     type="text"
-                    value={nickname}
-                    onChange={(e) =>{setNickname(e.target.value)}}
+                    value={nickName}
+                    onChange={(e) => {setNickName(e.target.value)}}
                     className="w-full p-2 mb-4 border-0 rounded"
                 />
                 <button
