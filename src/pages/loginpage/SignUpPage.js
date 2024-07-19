@@ -1,6 +1,6 @@
 import React from 'react';
-import {useNavigate} from "react-router-dom";
-import BotoxImage from '../../images/white.png'
+import { useNavigate } from "react-router-dom";
+import BotoxImage from '../../images/white.png';
 import menuImage from "../../images/menu.png";
 
 const SignUpPage = () => {
@@ -23,9 +23,9 @@ const SignUpPage = () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: email,
+                    username: email,
                     password1: password,
-                    password2: password,
+                    password2: confirmPassword,
                     userNickName: nickName
                 })
             });
@@ -57,12 +57,12 @@ const SignUpPage = () => {
         <div className="bg-customMainBg flex flex-col items-center justify-center">
             <div className="w-full bg-customTopNav h-10 mb-60">
                 <nav className="flex items-center px-4">
-                    <img src={menuImage} alt="Menu" className="w-10 h-10 p-2 mr-2"/>
+                    <img src={menuImage} alt="Menu" className="w-10 h-10 p-2 mr-2" />
                 </nav>
             </div>
             <div className="bg-customLoginBg p-8 rounded-lg shadow-2xl w-1/3 h-1/2">
                 <h1 className="text-3xl font-bold mb-6 flex items-center justify-center">
-                    <img src={BotoxImage} alt="Botox" className="w-8 h-8 mr-3"/>
+                    <img src={BotoxImage} alt="Botox" className="w-8 h-8 mr-3" />
                     B o t o x
                 </h1>
                 <h3 className="text-customDarkBlue text-sm mb-2">이메일 또는 아이디</h3>
@@ -70,7 +70,7 @@ const SignUpPage = () => {
                     type="email"
                     id="email"
                     value={email}
-                    onChange={(e) => {setEmail(e.target.value)}}
+                    onChange={(e) => { setEmail(e.target.value) }}
                     className="w-full p-2 mb-4 border-0 rounded"
                 />
                 <h3 className="text-customDarkBlue text-sm mb-2">비밀번호</h3>
@@ -78,21 +78,21 @@ const SignUpPage = () => {
                     type="password"
                     id="password"
                     value={password}
-                    onChange={(e) => {setPassword(e.target.value)}}
+                    onChange={(e) => { setPassword(e.target.value) }}
                     className="w-full p-2 mb-6 border-0 rounded"
                 />
                 <h3 className="text-customDarkBlue text-sm mb-2">비밀번호 확인</h3>
                 <input
                     type="password"
                     value={confirmPassword}
-                    onChange={(e) => {setConfirmPassword(e.target.value)}}
+                    onChange={(e) => { setConfirmPassword(e.target.value) }}
                     className={`w-full p-2 mb-6 border rounded ${password !== confirmPassword && confirmPassword !== '' ? 'border-red-500' : ''}`}
                 />
                 <h3 className="text-customDarkBlue text-sm mb-2">닉네임</h3>
                 <input
                     type="text"
                     value={nickName}
-                    onChange={(e) => {setNickName(e.target.value)}}
+                    onChange={(e) => { setNickName(e.target.value) }}
                     className="w-full p-2 mb-4 border-0 rounded"
                 />
                 <button

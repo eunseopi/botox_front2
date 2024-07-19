@@ -27,7 +27,6 @@ const LoginPage = () => {
                 const data = await response.json();
                 console.log('Response data:', data);
 
-                // 여기서 accessToken을 올바르게 추출합니다.
                 if (data.data && data.data.accessToken) {
                     localStorage.setItem('token', data.data.accessToken);
                     console.log('Token saved to localStorage:', data.data.accessToken);
