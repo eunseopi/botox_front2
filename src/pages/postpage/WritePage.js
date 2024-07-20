@@ -43,6 +43,7 @@ function WritePage() {
             return;
         }
 
+        const userId = localStorage.getItem('username');
         const formData = new FormData();
         formData.append('title', title);
         formData.append('content', content);
@@ -55,7 +56,7 @@ function WritePage() {
         }
 
         try {
-            const response = await axios.post('https://botox-chat.site/api/posts', formData, {
+            const response = await axios.post(`http://localhost:8080/api/posts?userId=${userId}`, formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'
