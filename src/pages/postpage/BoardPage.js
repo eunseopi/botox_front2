@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef, useCallback} from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import menuImage from "../../images/menu.png";
 import roomIcon from '../../images/roomIcon.png';
@@ -7,14 +7,13 @@ import good from '../../images/good.jpeg';
 import profile from '../../images/profile.jpg'
 import search from "../../images/search.png";
 import axios from 'axios';
-import {FaClipboard, FaHome, FaSignOutAlt, FaUser, FaUserFriends} from "react-icons/fa";
+import { FaClipboard, FaHome, FaSignOutAlt, FaUser, FaUserFriends } from "react-icons/fa";
 import ProfileModal from "../roompage/modal/ProfileModal";
-import {AiOutlineUserAdd} from "react-icons/ai";
+import { AiOutlineUserAdd } from "react-icons/ai";
 
 const FriendSearchModal = ({ onClose }) => {
     const [searchInput, setSearchInput] = useState('');
     const [searchResults, setSearchResults] = useState([]);
-
 
     const handleSearch = async () => {
         // 검색 로직 나중에 추가.
@@ -55,12 +54,16 @@ const FriendSearchModal = ({ onClose }) => {
                 />
                 <button onClick={handleSearch} className="w-full bg-blue-500 text-white p-2 rounded mb-4">검색</button>
                 <div>
-                    {searchResults.map((result) => (
-                        <div key={result.id} className="flex items-center justify-between mb-2">
-                            <span>{result.nickname}</span>
-                            <button onClick={() => handleSendFriendRequest(result.id)} className="bg-green-500 text-white p-2 rounded">추가</button>
-                        </div>
-                    ))}
+                    {Array.isArray(searchResults) && searchResults.length > 0 ? (
+                        searchResults.map((result) => (
+                            <div key={result.id} className="flex items-center justify-between mb-2">
+                                <span>{result.nickname}</span>
+                                <button onClick={() => handleSendFriendRequest(result.id)} className="bg-green-500 text-white p-2 rounded">추가</button>
+                            </div>
+                        ))
+                    ) : (
+                        <p>검색 결과가 없습니다.</p>
+                    )}
                 </div>
                 <button onClick={onClose} className="w-full bg-gray-500 text-white p-2 rounded">닫기</button>
             </div>
@@ -74,22 +77,22 @@ const GameCard = ({ post, onClick }) => (
         <div className="flex items-center justify-between mb-2">
             <div className="flex items-center">
                 <div className="mr-8">
-                    <img src={roomIcon} alt="Room" className="w-3 h-3 ml-5 mr-3 mt-2 mb-2 "/>
+                    <img src={roomIcon} alt="Room" className="w-3 h-3 ml-5 mr-3 mt-2 mb-2" />
                     <p className="text-white mt-2">{post.postId}</p>
                 </div>
                 <div>
                     <h3 className="font-bold text-white">{post.title}</h3>
                     <div className="flex items-center">
-                        <img src={egg} alt="Egg" className="w-5 h-3 mr-2"/>
+                        <img src={egg} alt="Egg" className="w-5 h-3 mr-2" />
                         <p className="text-customIdBg">{post.userId}</p>
                     </div>
                 </div>
             </div>
             <div className="ml-auto">
                 {post.image ? (
-                    <img src={post.image} alt="게시글 이미지" className="w-44 h-24 object-cover"/>
+                    <img src={post.image} alt="게시글 이미지" className="w-44 h-24 object-cover" />
                 ) : (
-                    <img src={good} alt="Good" className="w-44 h-24"/>
+                    <img src={good} alt="Good" className="w-44 h-24" />
                 )}
             </div>
         </div>
@@ -122,10 +125,15 @@ const BoardPage = () => {
                     Authorization: `Bearer ${token}`,
                 }
             });
-            setPosts(response.data);
-            setFilteredPosts(response.data);
-        } catch(error){
+            if (Array.isArray(response.data)) {
+                setPosts(response.data);
+                setFilteredPosts(response.data);
+            } else {
+                console.error('응답 데이터가 배열이 아닙니다.', response.data);
+            }
+        } catch (error) {
             console.error('fetching error', error);
+            setError('게시글을 가져오는 데 실패했습니다.');
         } finally {
             setIsLoading(false);
         }
@@ -154,8 +162,6 @@ const BoardPage = () => {
             console.error('Error fetching user data:', error);
         }
     };
-
-
 
     const handleSearchTitle = () => {
         if (!searchTerm.trim()) {
@@ -233,129 +239,70 @@ const BoardPage = () => {
             <div className="w-full bg-customTopNav h-10">
                 <nav className="flex items-center justify-between px-4">
                     <button type="button" onClick={() => setModalOpen(!modalOpen)}>
-                        <img src={menuImage} alt="Menu" className="w-10 h-10 p-2 mr-2"/>
+                        <img src={menuImage} alt="menu" className="w-7 h-7" />
                     </button>
-                    {modalOpen && userData && (
-                        <div className="fixed top-10 left-10 flex justify-center items-start">
-                            <div ref={modalBackground} className="bg-white p-4 w-64 rounded-xl shadow-lg">
-                                <div className="flex items-center mb-4">
-                                    <img src={userData.profilePicUrl} alt="Profile" className="w-16 h-16 rounded-full mr-4"/>
-                                    <div>
-                                        <p className="text-xl font-semibold">{userData.nickname}</p>
-                                        <p className="text-sm text-gray-500">{userData.status}</p>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <button onClick={handleMyPageClick} className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded">
-                                        <FaUser className="inline-block mr-2" /> 마이페이지
-                                    </button>
-                                    <button onClick={handleClickHome} className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded">
-                                        <FaHome className="inline-block mr-2" /> 홈
-                                    </button>
-                                    <button onClick={handleBoardClick} className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded">
-                                        <FaClipboard className="inline-block mr-2" /> 게시판
-                                    </button>
-                                    <button onClick={handleFriendClick} className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded">
-                                        <FaUserFriends className="inline-block mr-2" /> 친구목록
-                                    </button>
-                                    <button onClick={handleLogoutBtn} className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded text-red-500">
-                                        <FaSignOutAlt className="inline-block mr-2" /> 로그아웃
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    {friendsModalOpen && (
-                        <div className="fixed top-10 left-10 flex justify-center items-start z-1">
-                            <div ref={friendsModalBackground} className="bg-customFriendBg p-4 w-96 h-80 rounded-xl shadow-lg">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-white text-xl mb-4">친구 목록</h2>
-                                    <AiOutlineUserAdd className="w-10 h-10 mb-2" onClick={() => setShowFriendSearchModal(true)}/>
-                                </div>
-                                <hr className="mb-4"/>
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center">
-                                            <div className="w-8 h-8 bg-gray-500 rounded-full mr-2"></div>
-                                            <span className="text-white">인간성기삽니다123</span>
-                                        </div>
-                                        <button className="bg-green-500 text-white px-2 py-1 rounded">참여</button>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center">
-                                            <div className="w-8 h-8 bg-gray-500 rounded-full mr-2"></div>
-                                            <span className="text-white">와일드 맨들 9999</span>
-                                        </div>
-                                        <button className="bg-blue-500 text-white px-2 py-1 rounded">로비</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    <h1 className="text-white text-xl">커뮤니티</h1>
+                    <button onClick={handleLogoutBtn} className="text-white">
+                        <FaSignOutAlt size={24} />
+                    </button>
                 </nav>
             </div>
-            <div className="text-white text-4xl mb-6 mt-8 px-4 sm:px-8 md:px-16 lg:px-24 xl:px-80">
-                <h1 className="text-center sm:text-left">자유 게시판</h1>
-            </div>
-            <div className="flex-1 p-8 bg-customMainBg overflow-y-auto">
-                <div className="flex justify-end sm:mr-80 lg:mr-80 xl:mr-80 mb-4">
-                    <button
-                        onClick={handleWrite}
-                        className="text-xl text-white bg-customBoardBg p-2 rounded-xl w-48"
-                    >게시글 쓰기</button>
-                </div>
-                {isLoading ? (
-                    <p className="text-white text-center">게시글 불러오는중...</p>
-                ) : error ? (
-                    <p className="text-red-500 text-center">{error}</p>
-                ) : (
-                    <div className="mb-8">
-                        {filteredPosts.map((post) => (
-                            <GameCard
-                                key={post.postId}
-                                post={post}
-                                onClick={handlePostClick}
-                            />
-                        ))}
-                    </div>
-                )}
-                <div className="flex items-center justify-center px-4">
-                    <div className="relative w-full max-w-lg">
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => {
-                                setSearchTerm(e.target.value)
-                            }}
-                            onKeyPress={(e) => e.key === 'Enter' && handleSearchTitle()}
-                            placeholder="제목을 입력해 주세요."
-                            className="w-full p-2 pl-10 mb-3 border-0 rounded"
-                        />
-                        <img
-                            src={search}
-                            alt="Search"
-                            className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5"
-                            onClick={handleSearchTitle}
-                        />
+            {modalOpen && (
+                <div ref={modalBackground} className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">
+                    <div className="bg-white p-6 rounded-lg shadow-lg">
+                        <button onClick={() => setModalOpen(false)} className="absolute top-2 right-2 text-gray-700">&times;</button>
+                        <button onClick={handleClickHome} className="block mb-2">홈</button>
+                        <button onClick={handleBoardClick} className="block mb-2">게시판</button>
+                        <button onClick={handleWrite} className="block mb-2">글 작성</button>
+                        <button onClick={handleFriendClick} className="block mb-2">친구 관리</button>
+                        <button onClick={handleMyPageClick} className="block mb-2">마이페이지</button>
                     </div>
                 </div>
-                <div className="flex justify-center text-white">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                        <button key={num} className="mx-1 px-3 py-1 rounded hover:bg-gray-700">
-                            {num}
-                        </button>
-                    ))}
-                    <button className="ml-2 px-3 py-1 rounded hover:bg-gray-700">다음 &gt;</button>
+            )}
+            {friendsModalOpen && (
+                <div ref={friendsModalBackground} className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+                        <button onClick={() => setFriendsModalOpen(false)} className="absolute top-2 right-2 text-gray-700">&times;</button>
+                        <button onClick={() => setShowFriendSearchModal(true)} className="block mb-2">친구 추가</button>
+                        {/* 친구 목록 컴포넌트 추가 필요 */}
+                    </div>
                 </div>
-            </div>
-            {showFriendSearchModal && ( // 추가된 코드
-                <FriendSearchModal
-                    onClose={() => setShowFriendSearchModal(false)}
-                />
+            )}
+            {showFriendSearchModal && (
+                <FriendSearchModal onClose={() => setShowFriendSearchModal(false)} />
             )}
             {showProfileModal && (
                 <ProfileModal onClose={() => setShowProfileModal(false)} />
             )}
+            <div className="flex-grow bg-customBoardBg p-4">
+                <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="제목으로 검색"
+                    className="w-full p-2 border rounded mb-4"
+                />
+                <button onClick={handleSearchTitle} className="w-full bg-blue-500 text-white p-2 rounded">검색</button>
+                {isLoading ? (
+                    <p className="text-white text-center">로딩 중...</p>
+                ) : error ? (
+                    <p className="text-red-500 text-center">{error}</p>
+                ) : (
+                    <div className="mb-8">
+                        {Array.isArray(filteredPosts) && filteredPosts.length > 0 ? (
+                            filteredPosts.map((post) => (
+                                <GameCard
+                                    key={post.postId}
+                                    post={post}
+                                    onClick={handlePostClick}
+                                />
+                            ))
+                        ) : (
+                            <p className="text-white text-center">게시글이 없습니다.</p>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
