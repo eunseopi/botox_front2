@@ -34,6 +34,7 @@ const SignUpPage = () => {
 
             if (response.ok) {
                 const data = await response.json();
+                localStorage.setItem('username', email);
                 console.log('Signup success:', data);
                 navigate('/login');
             } else {

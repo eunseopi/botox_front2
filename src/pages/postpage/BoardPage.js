@@ -24,7 +24,7 @@ const FriendSearchModal = ({ onClose }) => {
 
     const handleSendFriendRequest = async (receiverId) => {
         try {
-            const response = await fetch('/api/friendship/request', {
+            const response = await fetch('https://botox-chat.site/api/api/friendship/request', {
                 method: 'POST',
                 headers: {
                     'Authorization': 'Bearer <your-token>',
@@ -117,7 +117,7 @@ const BoardPage = () => {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://43.203.238.195:8080/api/posts', {
+            const response = await axios.get('https://botox-chat.site/api/posts', {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 }
@@ -136,29 +136,26 @@ const BoardPage = () => {
     }, []);
 
     const fetchUserData = async () => {
-        try {
-            // const response = await fetch(`/api/users/${userId}`, {
-            //     headers: {
-            //         'Authorization': `Bearer ${localStorage.getItem('token')}`
-            //     }
-            // });
-            // const data = await response.json();
-            // setUserData(data);
+        const userId = localStorage.getItem('username');
+        if (!userId) {
+            console.error('No username found in localStorage');
+            return;
+        }
 
-            // 임시 더미 데이터
-            setUserData({
-                id: 1,
-                userId: "user123",
-                nickname: "쿨한두유",
-                profile: "안녕하세요! 게임을 좋아하는 쿨한두유입니다.",
-                profilePicUrl: "https://example.com/profile.jpg",
-                temperatureLevel: 36,
-                status: "online"
+        try {
+            const response = await fetch(`/api/users/${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
             });
+            const data = await response.json();
+            setUserData(data);
         } catch (error) {
             console.error('Error fetching user data:', error);
         }
     };
+
+
 
     const handleSearchTitle = () => {
         if (!searchTerm.trim()) {

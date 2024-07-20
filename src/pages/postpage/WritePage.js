@@ -55,7 +55,7 @@ function WritePage() {
         }
 
         try {
-            const response = await axios.post('http://43.203.238.195:8080/api/posts', formData, {
+            const response = await axios.post('https://botox-chat.site/api/posts', formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'
