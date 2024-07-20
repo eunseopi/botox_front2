@@ -43,11 +43,17 @@ function WritePage() {
             return;
         }
 
-        const userId = localStorage.getItem('username');
+        const userId = localStorage.getItem('username'); // 'userId'가 localStorage에 저장되어 있어야 합니다
+        if (!userId) {
+            alert('사용자 ID를 찾을 수 없습니다.');
+            return;
+        }
+
         const formData = new FormData();
+        formData.append('userId', userId);
         formData.append('title', title);
         formData.append('content', content);
-        formData.append('postType', 'general');
+        formData.append('postType', 'GENERAL'); // 'GENERAL'로 설정
 
         if (image) {
             Array.from(image).forEach((img, index) => {
@@ -56,15 +62,19 @@ function WritePage() {
         }
 
         try {
-            const response = await axios.post(`http://localhost:8080/api/posts?userId=${userId}`, formData, {
+            const response = await axios.post('http://localhost:8080/api/posts', formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'
                 }
             });
 
-            console.log('New post added:', response.data);
-            navigate('/board', { state: { newPost: response.data } });
+            if (response.data.status === 'OK') {
+                console.log('New post added:', response.data.data);
+                navigate('/board', { state: { newPost: response.data.data } });
+            } else {
+                alert('게시글 작성에 실패했습니다. 다시 시도해 주세요.');
+            }
         } catch (error) {
             console.error('Error posting new content:', error);
             if (error.response && error.response.status === 401) {
