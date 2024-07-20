@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from "axios";
+import axios from 'axios';
 
 function WritePage() {
     const [title, setTitle] = useState('');
@@ -19,7 +19,7 @@ function WritePage() {
 
     const handleImageChange = (e) => {
         const files = e.target.files;
-        setImage(Array.from(files));
+        setImage(files);
 
         const previewPromises = Array.from(files).map(file => {
             return new Promise((resolve) => {
@@ -48,8 +48,8 @@ function WritePage() {
         formData.append('content', content);
         formData.append('postType', 'general');
 
-        if (image && image.length > 0) {
-            image.forEach((img, index) => {
+        if (image) {
+            Array.from(image).forEach((img, index) => {
                 formData.append(`image${index}`, img);
             });
         }
