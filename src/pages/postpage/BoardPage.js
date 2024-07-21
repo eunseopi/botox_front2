@@ -345,7 +345,7 @@ const BoardPage = () => {
                     <p className="text-red-500 text-center">{error}</p>
                 ) : (
                     <div className="mb-8">
-                        {getCurrentPosts.map((post) => (
+                        {getCurrentPosts().map((post) => (
                             <GameCard
                                 key={post.postId}
                                 post={post}
