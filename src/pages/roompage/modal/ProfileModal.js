@@ -15,28 +15,22 @@ const ProfileModal = ({onClose}) => {
     }, []);
 
     const fetchUserData = async () => {
-        try {
-            // 나중에 연결
-            // const response = await fetch(`/api/users/${userId}`,{
-            //     headers: {
-            //         'Authorization' : `Bearer ${localStorage.getItem('token')}`,
-            //     }
-            // });
-            // const data = await response.json();
-            // setUserData(data);
-            // setNewNickname(data.nickname);
+        const userId = localStorage.getItem('username');
+        if (!userId) {
+            console.error('No username found in localStorage');
+            return;
+        }
 
-            // 임시 데이터
-            setUserData({
-                id: 1,
-                userId: "user123",
-                nickname: "쿨한두유",
-                profile: "안녕하세요! 게임을 좋아하는 쿨한두유입니다.",
-                profilePicUrl: "https://example.com/profile",
-                temperatureLevel: 36,
-                status: "online"
-            })
-            setNewNickname("쿨한두유");
+        try {
+            const response = await fetch(`https://botox-chat.site/api/users/${userId}`,{
+                headers: {
+                    'Authorization' : `Bearer ${localStorage.getItem('token')}`,
+                }
+            });
+            const data = await response.json();
+            setUserData(data);
+            setNewNickname(data.nickname);
+
         } catch(error){
             console.error("에러 이유:",error);
         }
