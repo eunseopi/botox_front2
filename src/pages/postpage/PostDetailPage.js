@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from "axios";
 
 const updatePost = async (postId, updatedPost) => {
-    const response = await axios.put(`https://botox-chat.site/api/api/posts/${postId}`, updatedPost, {
+    const response = await axios.put(`https://botox-chat.site/api/posts/${postId}`, updatedPost, {
         headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
@@ -13,7 +13,7 @@ const updatePost = async (postId, updatedPost) => {
 };
 
 const deletePost = async (postId) => {
-    const response = await axios.delete(`https://botox-chat.site/api/api/posts/${postId}`, {
+    const response = await axios.delete(`https://botox-chat.site/api/posts/${postId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     });
     return response.data;
