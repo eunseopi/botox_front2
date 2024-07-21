@@ -139,8 +139,7 @@ const BoardPage = () => {
     }, []);
 
     const fetchUserData = async () => {
-        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-        const userId = userInfo && userInfo.username;
+        const userId = JSON.parse(localStorage.getItem('userInfo')).username;
         if (!userId) {
             console.error('No username found in localStorage');
             navigate('/login');
