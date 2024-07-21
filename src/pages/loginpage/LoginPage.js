@@ -29,13 +29,23 @@ const LoginPage = () => {
 
                 if (data.data && data.data.accessToken) {
                     localStorage.setItem('token', data.data.accessToken);
-                    localStorage.setItem('userInfo', JSON.stringify(response.data.userInfo));
-                    console.log('Token saved to localStorage:', data.data.accessToken);
+
+                    // 사용자 정보를 저장합니다.
+                    const userInfo = {
+                        username: data.data.username,
+                        userStatus: data.data.userStatus
+                        // 필요한 다른 정보들도 여기에 추가할 수 있습니다.
+                    };
+                    localStorage.setItem('userInfo', JSON.stringify(userInfo));
+
+                    console.log('Token and user info saved to localStorage');
                     navigate('/');
                 } else {
                     console.log('로그인에 실패했습니다. 토큰이 제공되지 않았습니다.');
                     alert('로그인에 실패했습니다. 토큰이 제공되지 않았습니다.');
                 }
+            } else if (response.status === 403) {
+                // ... (나머지 코드는 그대로 유지)
             } else if (response.status === 403) {
                 console.log('로그인에 실패했습니다. 접근이 거부되었습니다.');
                 alert('로그인에 실패했습니다. 접근이 거부되었습니다.');
