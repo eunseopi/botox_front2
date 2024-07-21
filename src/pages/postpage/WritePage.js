@@ -5,8 +5,6 @@ import axios from 'axios';
 function WritePage() {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
-    const [image, setImage] = useState(null);
-    const [previews, setPreview] = useState([]);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -17,31 +15,12 @@ function WritePage() {
         }
     }, [navigate]);
 
-    const handleImageChange = (e) => {
-        const files = e.target.files;
-        setImage(files);
-
-        const previewPromises = Array.from(files).map(file => {
-            return new Promise((resolve) => {
-                const fileReader = new FileReader();
-                fileReader.onload = (e) => resolve(e.target.result);
-                fileReader.readAsDataURL(file);
-            });
-        });
-
-        Promise.all(previewPromises).then(previews => {
-            setPreview(previews);
-        });
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         const token = localStorage.getItem('token');
-        const userId = JSON.parse(localStorage.getItem('userInfo')).username;
-        if (!userId) {
-            console.error('No username found in localStorage');
-            return;
-        }
+        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+        const userId = userInfo.id;
+
         if (!token || !userId) {
             alert('로그인이 필요합니다.');
             navigate('/login');
@@ -49,14 +28,14 @@ function WritePage() {
         }
 
         const postData = {
-            userId: userId, // API가 숫자를 기대한다면 문자열을 숫자로 변환
+            id: userId,
             title: title,
             content: content,
             postType: 'GENERAL'
         };
 
         try {
-            const response = await axios.post('https://botox-chat.site/api/posts', postData, {
+            const response = await axios.post(`https://botox-chat.site/api/posts?userId=${userId}`, postData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -125,22 +104,6 @@ function WritePage() {
                             className="w-full p-2 border border-gray-300 rounded-md focus:ring-customDarkBlue focus:border-customDarkBlue"
                             required
                         ></textarea>
-                    </div>
-                    <div className="mb-4">
-                        <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
-                            이미지 업로드
-                        </label>
-                        <input
-                            type="file"
-                            multiple
-                            id="image"
-                            onChange={handleImageChange}
-                            accept="image/*"
-                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-customDarkBlue focus:border-customDarkBlue"
-                        />
-                        {previews.map((preview, index) => (
-                            <img key={index} src={preview} alt={`Preview ${index}`} className="mt-2 max-w-full h-auto"/>
-                        ))}
                     </div>
                     <div className="flex justify-end space-x-4">
                         <button
