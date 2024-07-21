@@ -107,6 +107,8 @@ const BoardPage = () => {
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filteredPosts, setFilteredPosts] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const postsPerPage = 5;
     const modalBackground = useRef(null);
     const friendsModalBackground = useRef(null);
     const navigate = useNavigate();
@@ -237,6 +239,23 @@ const BoardPage = () => {
         navigate('/write');
     };
 
+    const getCurrentPosts = () => {
+        const indexOfLastPost = currentPage * postsPerPage;
+        const indexOfFirstPost = indexOfLastPost - postsPerPage;
+        return filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
+    };
+
+    const handlePageClick = (pageNumber) => {
+        setCurrentPage(pageNumber);
+    };
+
+    const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
+
+    const pageNumbers = [];
+    for (let i = 1; i <= Math.min(10, totalPages); i++) {
+        pageNumbers.push(i);
+    }
+
     useEffect(() => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => {
@@ -326,7 +345,7 @@ const BoardPage = () => {
                     <p className="text-red-500 text-center">{error}</p>
                 ) : (
                     <div className="mb-8">
-                        {filteredPosts.map((post) => (
+                        {getCurrentPosts.map((post) => (
                             <GameCard
                                 key={post.postId}
                                 post={post}
@@ -354,12 +373,23 @@ const BoardPage = () => {
                     </div>
                 </div>
                 <div className="flex justify-center text-white">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                        <button key={num} className="mx-1 px-3 py-1 rounded hover:bg-gray-700">
+                    {pageNumbers.map((num) => (
+                        <button
+                            key={num}
+                            className={`mx-1 px-3 py-1 rounded hover:bg-gray-700 ${currentPage === num ? 'bg-gray-700' : ''}`}
+                            onClick={() => handlePageClick(num)}
+                        >
                             {num}
                         </button>
                     ))}
-                    <button className="ml-2 px-3 py-1 rounded hover:bg-gray-700">다음 &gt;</button>
+                    {totalPages > 10 && (
+                        <button
+                            className="ml-2 px-3 py-1 rounded hover:bg-gray-700"
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        >
+                            다음 &gt;
+                        </button>
+                    )}
                 </div>
             </div>
             {showFriendSearchModal && (
@@ -368,7 +398,7 @@ const BoardPage = () => {
                 />
             )}
             {showProfileModal && (
-                <ProfileModal onClose={() => setShowProfileModal(false)} />
+                <ProfileModal onClose={() => setShowProfileModal(false)}/>
             )}
         </div>
     );
