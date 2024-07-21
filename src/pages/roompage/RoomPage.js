@@ -11,7 +11,6 @@ import PasswordModal from './modal/PassWordModal'; // PasswordModal 임포트 �
 import { AiOutlineUserAdd } from "react-icons/ai";
 import { FaClipboard, FaHome, FaLock, FaSignOutAlt, FaUser, FaUserFriends } from 'react-icons/fa';
 import ProfileModal from "./modal/ProfileModal";
-import FriendSearchModal from "./modal/FriendSearchModal"; // FriendSearchModal 임포트 추가
 
 const RoomPage = () => {
     const { game } = useParams();  // URL 파라미터에서 game 읽기
@@ -265,9 +264,6 @@ const RoomPage = () => {
             )}
             {showProfileModal && (
                 <ProfileModal onClose={() => setShowProfileModal(false)} userData={userData} />
-            )}
-            {showFriendSearchModal && (
-                <FriendSearchModal onClose={() => setShowFriendSearchModal(false)} />
             )}
         </div>
     );
