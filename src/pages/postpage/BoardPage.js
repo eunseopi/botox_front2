@@ -14,6 +14,8 @@ import { AiOutlineUserAdd } from "react-icons/ai";
 const FriendSearchModal = ({ onClose }) => {
     const [searchInput, setSearchInput] = useState('');
     const [searchResults, setSearchResults] = useState([]);
+    const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+    const userId = userInfo.id;
 
     const handleSearch = async () => {
         // Placeholder for search logic
@@ -29,7 +31,7 @@ const FriendSearchModal = ({ onClose }) => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    senderId: 1, // Replace with actual user ID
+                    senderId: userId,
                     receiverId: receiverId
                 })
             });
@@ -79,7 +81,7 @@ const GameCard = ({ post, onClick }) => (
                     <h3 className="font-bold text-white">{post.title}</h3>
                     <div className="flex items-center">
                         <img src={egg} alt="Egg" className="w-5 h-3 mr-2"/>
-                        <p className="text-customIdBg">{post.userId}</p>
+                        <p className="text-customIdBg">{post.userNickName}</p>
                     </div>
                 </div>
             </div>

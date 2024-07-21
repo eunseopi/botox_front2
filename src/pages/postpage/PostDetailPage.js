@@ -57,9 +57,13 @@ const PostDetailPage = () => {
         <div className="bg-customMainBg min-h-screen p-8">
             <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
                 <h1 className="text-2xl font-bold text-customDarkBlue mb-4">{post.title}</h1>
+                <div className="flex text-right">
+                <p>수정</p>
+                <p>삭제</p>
+                </div>
                 <div className="mb-4">
-                    <span className="text-gray-600 mr-4">작성자: {post.id}</span>
-                    <span className="text-gray-600">번호: {post.number}</span>
+                    <span className="text-gray-600 mr-4">작성자: {post.userNickName}</span>
+                    <span className="text-gray-600">번호: {post.data.postId}</span>
                 </div>
                 {post.image && (
                     <img src={post.image} alt="게시글 이미지" className="w-full mb-4 rounded-lg"/>
