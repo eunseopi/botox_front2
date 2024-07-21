@@ -48,43 +48,49 @@ function WritePage() {
             return;
         }
 
-
-        const formData = new FormData();
-        formData.append('userId', userId);
-        formData.append('title', title);
-        formData.append('content', content);
-        formData.append('postType', 'GENERAL');
-
-        if (image) {
-            Array.from(image).forEach((img, index) => {
-                formData.append(`image${index}`, img);
-            });
-        }
+        const postData = {
+            userId: parseInt(userId), // API가 숫자를 기대한다면 문자열을 숫자로 변환
+            title: title,
+            content: content,
+            postType: 'GENERAL'
+        };
 
         try {
-            const response = await axios.post(`https://botox-chat.site/api/posts`, formData, {
+            const response = await axios.post('https://botox-chat.site/api/posts', postData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
+                    'Content-Type': 'application/json'
                 }
             });
 
-            if (response.data.postId) {
-                console.log('New post added:', response.data);
+            if (response.data.status === "OK" && response.data.data.postId) {
+                console.log('New post added:', response.data.data);
                 alert(response.data.message);
-                navigate('/board', { state: { newPost: response.data } });
+                navigate('/board', { state: { newPost: response.data.data } });
             } else {
                 alert('게시글 작성에 실패했습니다. 다시 시도해 주세요.');
             }
         } catch (error) {
             console.error('Error posting new content:', error);
-            if (error.response && error.response.status === 401) {
-                alert('인증이 만료되었습니다. 다시 로그인해주세요.');
-                localStorage.removeItem('token');
-                localStorage.removeItem('userInfo');
-                navigate('/login');
+            if (error.response) {
+                console.log('Error response:', error.response);
+                if (error.response.status === 403) {
+                    alert('권한이 없습니다. 로그인 상태를 확인해주세요.');
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    navigate('/login');
+                } else if (error.response.status === 401) {
+                    alert('인증이 만료되었습니다. 다시 로그인해주세요.');
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    navigate('/login');
+                } else {
+                    alert(`게시물을 저장하는 데 실패했습니다. 오류 코드: ${error.response.status}`);
+                }
+            } else if (error.request) {
+                alert('서버로부터 응답이 없습니다. 네트워크 연결을 확인해주세요.');
             } else {
-                alert('게시물을 저장하는 데 실패했습니다. 다시 시도해 주세요.');
+                alert('요청 설정 중 오류가 발생했습니다.');
             }
         }
     };
