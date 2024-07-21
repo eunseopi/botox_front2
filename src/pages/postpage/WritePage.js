@@ -11,8 +11,7 @@ function WritePage() {
 
     useEffect(() => {
         const token = localStorage.getItem('token');
-        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-        if (!token || !userInfo) {
+        if (!token) {
             alert('로그인이 필요합니다.');
             navigate('/login');
         }
@@ -38,18 +37,17 @@ function WritePage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const token = localStorage.getItem('token');
-        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-        if (!token || !userInfo) {
+        const userId = localStorage.getItem('username');
+        if (!userId) {
+            console.error('No username found in localStorage');
+            return;
+        }
+        if (!token || !userId) {
             alert('로그인이 필요합니다.');
             navigate('/login');
             return;
         }
 
-        const userId = userInfo.id; // userInfo에서 id를 가져옵니다.
-        if (!userId) {
-            alert('사용자 ID를 찾을 수 없습니다.');
-            return;
-        }
 
         const formData = new FormData();
         formData.append('userId', userId);
