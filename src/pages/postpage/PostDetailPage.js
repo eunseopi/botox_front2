@@ -1,12 +1,71 @@
 import React, {useState, useEffect} from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import axios from "axios";
+
+const updatePost = async (postId, updatedPost) => {
+    const response = await axios.put(`https://botox-chat.site/api/api/posts/${postId}`, updatedPost, {
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    return response.data;
+};
+
+const deletePost = async (postId) => {
+    const response = await axios.delete(`https://botox-chat.site/api/api/posts/${postId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    });
+    return response.data;
+};
 
 const PostDetailPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { post } = location.state || {};
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
+    const [isEditing, setIsEditing] = useState(false);
+    const [editTitle, setEditTitle] = useState('');
+    const [editContent, setEditContent] = useState('');
+    const [post, setPost] = useState(location.state?.post);
+
+    useEffect(() => {
+        if (post) {
+            setEditTitle(post.title);
+            setEditContent(post.content);
+        }
+    }, [post]);
+
+    const handleEdit = () => {
+        setIsEditing(true);
+    };
+
+    const handleUpdate = async () => {
+        try {
+            const updatedPost = await updatePost(post.postId, {
+                title: editTitle,
+                content: editContent,
+                postType: post.postType
+            });
+            setPost(updatedPost.data);
+            setIsEditing(false);
+        } catch (err) {
+            console.error('게시글 수정에 실패했습니다.');
+            console.error(err);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (window.confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
+            try {
+                await deletePost(post.postId);
+                navigate('/board');
+            } catch (err) {
+                console.error('게시글 삭제에 실패했습니다.');
+                console.error(err);
+            }
+        }
+    };
 
     useEffect(() => {
         // LocalStorage에서 댓글 불러오기
@@ -53,23 +112,47 @@ const PostDetailPage = () => {
         localStorage.setItem(`comments_${post.number}`, JSON.stringify(updatedComments));
     }
 
+
+
     return (
         <div className="bg-customMainBg min-h-screen p-8">
             <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
-                <h1 className="text-2xl font-bold text-customDarkBlue mb-4">{post.title}</h1>
-                <div className="flex text-right">
-                <p>수정</p>
-                <p>삭제</p>
-                </div>
-                <div className="mb-4">
-                    <span className="text-gray-600 mr-4">작성자: {post.userNickName}</span>
-                    <span className="text-gray-600">번호: {post.postId}</span>
-                </div>
-                {post.image && (
-                    <img src={post.image} alt="게시글 이미지" className="w-full mb-4 rounded-lg"/>
+                {isEditing ? (
+                    <>
+                        <input
+                            type="text"
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            className="w-full text-2xl font-bold mb-4 p-2 border rounded"
+                        />
+                        <textarea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            className="w-full p-2 border rounded mb-4"
+                            rows="5"
+                        />
+                        <div>
+                            <button onClick={handleUpdate} className="px-4 py-2 bg-blue-500 text-white rounded mr-2">저장</button>
+                            <button onClick={() => setIsEditing(false)} className="px-4 py-2 bg-gray-500 text-white rounded">취소</button>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <h1 className="text-2xl font-bold text-customDarkBlue mb-4">{post.title}</h1>
+                        <div className="flex text-right mb-4">
+                            <button onClick={handleEdit} className="mr-10 text-blue-500 hover:text-blue-700">글 수정</button>
+                            <button onClick={handleDelete} className="text-red-500 hover:text-red-700">글 삭제</button>
+                        </div>
+                        <div className="mb-4">
+                            <span className="text-gray-600 mr-4">작성자: {post.userNickName}</span>
+                            <span className="text-gray-600">번호: {post.postId}</span>
+                        </div>
+                        {post.image && (
+                            <img src={post.image} alt="게시글 이미지" className="w-full mb-4 rounded-lg"/>
+                        )}
+                        <p className="text-gray-800 mb-6">{post.content}</p>
+                    </>
                 )}
-                <p className="text-gray-800 mb-6">{post.content}</p>
-
                 <div className="mt-8">
                     <h2 className="text-xl font-semibold mb-4">댓글</h2>
                     <form onSubmit={handleCommentSubmit} className="mb-4 flex h-14">
