@@ -120,24 +120,24 @@ const RoomPage = () => {
     }, []);
 
     const fetchUserData = async () => {
-        try {
-            // const response = await fetch(`/api/users/${userId}`, {
-            //     headers: {
-            //         'Authorization': `Bearer ${localStorage.getItem('token')}`
-            //     }
-            // });
-            // const data = await response.json();
-            // setUserData(data);
+        const userId = JSON.parse(localStorage.getItem('userInfo')).username;
+        if (!userId) {
+            console.error('No username found in localStorage');
+            navigate('/login');
+            return;
+        }
 
-            // 임시 더미 데이터
+        try {
+            const response = await fetch(`https://botox-chat.site/api/users/${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            const data = await response.json();
             setUserData({
-                id: 1,
-                userId: "user123",
-                nickname: "삼육두유",
-                profile: "안녕하세요! 게임을 좋아하는 쿨한두유입니다.",
-                profilePicUrl: "https://example.com/profile.jpg",
-                temperatureLevel: 36,
-                status: "online"
+                ...data.data,
+                nickname: data.data.userNickname,
+                status: data.data.status
             });
         } catch (error) {
             console.error('Error fetching user data:', error);
