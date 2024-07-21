@@ -4,7 +4,7 @@ import menuImage from "../../images/menu.png";
 import roomIcon from '../../images/roomIcon.png';
 import egg from '../../images/egg.png';
 import good from '../../images/good.jpeg';
-import profile from '../../images/profile.jpg'
+import profile from '../../images/profile.jpg';
 import search from "../../images/search.png";
 import axios from 'axios';
 import { FaClipboard, FaHome, FaSignOutAlt, FaUser, FaUserFriends } from "react-icons/fa";
@@ -25,7 +25,7 @@ const FriendSearchModal = ({ onClose }) => {
             const response = await fetch('https://botox-chat.site/api/friendship/request', {
                 method: 'POST',
                 headers: {
-                    'Authorization': 'Bearer <your-token>',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -119,9 +119,9 @@ const BoardPage = () => {
                     Authorization: `Bearer ${token}`,
                 }
             });
-            if (Array.isArray(response.data)) {
-                setPosts(response.data);
-                setFilteredPosts(response.data);
+            if (response.data && response.data.data && Array.isArray(response.data.data.content)) {
+                setPosts(response.data.data.content);
+                setFilteredPosts(response.data.data.content);
             } else {
                 console.error('Unexpected response format', response.data);
             }
@@ -131,7 +131,7 @@ const BoardPage = () => {
         } finally {
             setIsLoading(false);
         }
-    }
+    };
 
     useEffect(() => {
         fetchPosts();
@@ -174,6 +174,23 @@ const BoardPage = () => {
         }
     };
 
+    const handlePostClick = async (post) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`https://botox-chat.site/api/posts/${post.postId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                }
+            });
+
+            const postData = response.data.data;
+            navigate(`/post/${post.postId}`, { state: { post: postData } });
+        } catch (error) {
+            console.error('Error fetching post data:', error);
+            alert('게시글 정보를 불러오는 중 오류가 발생했습니다.');
+        }
+    };
+
     useEffect(() => {
         if (location.state && location.state.newPost) {
             console.log('New post received:', location.state.newPost);
@@ -185,12 +202,12 @@ const BoardPage = () => {
     const handleLogoutBtn = () => {
         localStorage.removeItem('token');
         navigate('/login');
-    }
+    };
 
     const handleMyPageClick = () => {
         setShowProfileModal(true);
         setModalOpen(false);
-    }
+    };
 
     const handleClickOutside = useCallback((e) => {
         if (modalOpen && modalBackground.current && !modalBackground.current.contains(e.target)) {
@@ -203,23 +220,19 @@ const BoardPage = () => {
 
     const handleClickHome = () => {
         navigate('/');
-    }
+    };
 
     const handleFriendClick = () => {
         setFriendsModalOpen(true);
         setModalOpen(false);
-    }
+    };
 
     const handleBoardClick = () => {
         navigate('/board');
-    }
+    };
 
     const handleWrite = () => {
         navigate('/write');
-    }
-
-    const handlePostClick = (post) => {
-        navigate(`/post/${post.postId}`, { state: { post } });
     };
 
     useEffect(() => {
