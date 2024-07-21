@@ -152,7 +152,11 @@ const BoardPage = () => {
                 }
             });
             const data = await response.json();
-            setUserData(data);
+            setUserData({
+                ...data.data,
+                nickname: data.data.userNickname,
+                status: data.data.status
+            });
         } catch (error) {
             console.error('Error fetching user data:', error);
         }
@@ -235,7 +239,7 @@ const BoardPage = () => {
                         <div className="fixed top-10 left-10 flex justify-center items-start">
                             <div ref={modalBackground} className="bg-white p-4 w-64 rounded-xl shadow-lg">
                                 <div className="flex items-center mb-4">
-                                    <img src={userData.profilePicUrl || profile} alt="Profile" className="w-16 h-16 rounded-full mr-4"/>
+                                    <img src={userData.userProfilePic || profile} alt="Profile" className="w-16 h-16 rounded-full mr-4"/>
                                     <div>
                                         <p className="text-xl font-semibold">{userData.nickname}</p>
                                         <p className="text-sm text-gray-500">{userData.status}</p>

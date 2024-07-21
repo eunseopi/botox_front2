@@ -9,8 +9,7 @@ const ProfileModal = ({onClose}) => {
     const [previewImage, setPreviewImage] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
 
-
-    useEffect(()=> {
+    useEffect(() => {
         fetchUserData();
     }, []);
 
@@ -22,17 +21,20 @@ const ProfileModal = ({onClose}) => {
         }
 
         try {
-            const response = await fetch(`https://botox-chat.site/api/users/${userId}`,{
+            const response = await fetch(`https://botox-chat.site/api/users/${userId}`, {
                 headers: {
-                    'Authorization' : `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 }
             });
-            const data = await response.json();
-            setUserData(data);
-            setNewNickname(data.nickname);
-
-        } catch(error){
-            console.error("에러 이유:",error);
+            const result = await response.json();
+            if (result.code === "OK" && result.data) {
+                setUserData(result.data);
+                setNewNickname(result.data.userNickname);
+            } else {
+                console.error("Failed to fetch user data:", result.message);
+            }
+        } catch (error) {
+            console.error("에러 이유:", error);
         }
     };
 
@@ -78,6 +80,10 @@ const ProfileModal = ({onClose}) => {
     if (!userData) {
         return <div>Loading...</div>
     }
+    if (!userData) {
+        return <div>Loading...</div>
+    }
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-8 rounded-lg shadow-lg w-96">
@@ -92,7 +98,7 @@ const ProfileModal = ({onClose}) => {
                 <div className="flex flex-col items-center mb-6">
                     <div className="relative">
                         <img
-                            src={previewImage || userData.profilePicUrl}
+                            src={previewImage || userData.userProfilePic || 'default-profile-image-url'}
                             alt="Profile"
                             className="w-32 h-32 rounded-full object-cover mb-4"
                         />
@@ -117,9 +123,9 @@ const ProfileModal = ({onClose}) => {
                             className="text-xl font-semibold text-center border-b-2 border-blue-500 focus:outline-none"
                         />
                     ) : (
-                        <h3 className="text-xl font-semibold">{userData.nickname}</h3>
+                        <h3 className="text-xl font-semibold">{userData.userNickname}</h3>
                     )}
-                    <p className="text-gray-600 mt-2">{userData.profile}</p>
+                    <p className="text-gray-600 mt-2">{userData.userProfile || '프로필이 설정되지 않았습니다.'}</p>
                 </div>
                 <div className="mb-6">
                     <h4 className="font-semibold mb-2">상태</h4>
@@ -130,10 +136,10 @@ const ProfileModal = ({onClose}) => {
                     <div className="bg-gray-200 h-4 rounded-full">
                         <div
                             className="bg-red-500 h-4 rounded-full"
-                            style={{ width: `${userData.temperatureLevel}%` }}
+                            style={{ width: `${userData.userTemperatureLevel || 0}%` }}
                         ></div>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">{userData.temperatureLevel}°C</p>
+                    <p className="text-sm text-gray-600 mt-1">{userData.userTemperatureLevel || 0}°C</p>
                 </div>
                 {isEditing ? (
                     <div className="flex justify-end">
@@ -153,5 +159,4 @@ const ProfileModal = ({onClose}) => {
         </div>
     );
 };
-
 export default ProfileModal;
