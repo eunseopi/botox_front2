@@ -27,21 +27,28 @@ const MainPage = () => {
 
     useEffect(() => {
         // 로그인 상태를 localStorage에서 가져옴
-        const loggedIn = localStorage.getItem('loggedIn') === 'true';
-        setIsLoggedIn(loggedIn);
+        const userInfo = localStorage.getItem('userInfo');
+        const token = localStorage.getItem('token');
+        // userInfo가 존재하고 token이 있으면 로그인 상태로 간주
+        if (userInfo && token) {
+            setIsLoggedIn(true);
+        } else {
+            setIsLoggedIn(false);
+        }
     }, []); // 빈 배열로 dependency 설정하여 컴포넌트 마운트 시 한 번만 실행
 
     const handleAuth = () => {
         if (isLoggedIn) {
-            localStorage.setItem('loggedIn', 'false');
+            localStorage.removeItem('userInfo');
+            localStorage.removeItem('token');
             setIsLoggedIn(false);
         } else {
             navigate('/login');
         }
     };
 
-    const handleInRoom = () => {
-        navigate('/room');
+    const handleInRoom = (game) => {
+        navigate(`/room/${game}`);
     };
 
     return (
@@ -90,21 +97,21 @@ const MainPage = () => {
                 </div>
                 <div className="flex flex-wrap justify-center px-4 sm:px-6 lg:px-64">
                     <div className="w-full sm:w-1/2 md:w-1/3 p-2 relative">
-                        <img src={lol} alt="MenuLoL" className="w-auto h-auto object-cover rounded" onClick={handleInRoom} />
+                        <img src={lol} alt="MenuLoL" className="w-auto h-auto object-cover rounded" onClick={() => handleInRoom('lol')} />
                         <div className="absolute top-5 right-7 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full flex items-center">
                             <img src={userIcon} alt="User" className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                             <span>{userCount}</span>
                         </div>
                     </div>
                     <div className="w-full sm:w-1/2 md:w-1/3 p-2 relative">
-                        <img src={sudden} alt="MenuSudden" className="w-auto h-auto object-cover rounded" />
+                        <img src={sudden} alt="MenuSudden" className="w-auto h-auto object-cover rounded" onClick={() => handleInRoom('sudden')} />
                         <div className="absolute top-4 right-7 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full flex items-center">
                             <img src={userIcon} alt="User" className="w-4 h-4 mr-1" />
                             <span>{userCount}</span>
                         </div>
                     </div>
                     <div className="w-full sm:w-1/2 md:w-1/3 p-2 relative">
-                        <img src={gta} alt="MenuGta" className="w-auto h-auto object-cover rounded" />
+                        <img src={gta} alt="MenuGta" className="w-auto h-auto object-cover rounded" onClick={() => handleInRoom('gta')} />
                         <div className="absolute top-4 right-7 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full flex items-center">
                             <img src={userIcon} alt="User" className="w-4 h-4 mr-1" />
                             <span>{userCount}</span>
