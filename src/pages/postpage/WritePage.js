@@ -49,7 +49,7 @@ function WritePage() {
         }
 
         const postData = {
-            userId: parseInt(userId), // API가 숫자를 기대한다면 문자열을 숫자로 변환
+            userId: userId, // API가 숫자를 기대한다면 문자열을 숫자로 변환
             title: title,
             content: content,
             postType: 'GENERAL'
