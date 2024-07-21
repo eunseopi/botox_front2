@@ -37,7 +37,7 @@ function WritePage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const token = localStorage.getItem('token');
-        const userId = localStorage.getItem('username');
+        const userId = JSON.parse(localStorage.getItem('userInfo')).username;
         if (!userId) {
             console.error('No username found in localStorage');
             return;

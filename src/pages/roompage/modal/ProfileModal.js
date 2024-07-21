@@ -14,7 +14,7 @@ const ProfileModal = ({onClose}) => {
     }, []);
 
     const fetchUserData = async () => {
-        const userId = localStorage.getItem('username');
+        const userId = JSON.parse(localStorage.getItem('userInfo')).username;
         if (!userId) {
             console.error('No username found in localStorage');
             return;
