@@ -63,7 +63,7 @@ const PostDetailPage = () => {
                 </div>
                 <div className="mb-4">
                     <span className="text-gray-600 mr-4">작성자: {post.userNickName}</span>
-                    <span className="text-gray-600">번호: {post.data.postId}</span>
+                    <span className="text-gray-600">번호: {post.postId}</span>
                 </div>
                 {post.image && (
                     <img src={post.image} alt="게시글 이미지" className="w-full mb-4 rounded-lg"/>
