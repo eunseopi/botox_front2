@@ -11,7 +11,8 @@ function WritePage() {
 
     useEffect(() => {
         const token = localStorage.getItem('token');
-        if (!token) {
+        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+        if (!token || !userInfo) {
             alert('로그인이 필요합니다.');
             navigate('/login');
         }
@@ -37,13 +38,14 @@ function WritePage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const token = localStorage.getItem('token');
-        if (!token) {
+        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+        if (!token || !userInfo) {
             alert('로그인이 필요합니다.');
             navigate('/login');
             return;
         }
 
-        const userId = localStorage.getItem('username'); // 'userId'가 localStorage에 저장되어 있어야 합니다
+        const userId = userInfo.id; // userInfo에서 id를 가져옵니다.
         if (!userId) {
             alert('사용자 ID를 찾을 수 없습니다.');
             return;
@@ -53,7 +55,7 @@ function WritePage() {
         formData.append('userId', userId);
         formData.append('title', title);
         formData.append('content', content);
-        formData.append('postType', 'GENERAL'); // 'GENERAL'로 설정
+        formData.append('postType', 'GENERAL');
 
         if (image) {
             Array.from(image).forEach((img, index) => {
@@ -62,16 +64,17 @@ function WritePage() {
         }
 
         try {
-            const response = await axios.post(`http://localhost:8080/api/posts?userId=${userId}`, formData, {
+            const response = await axios.post(`http://localhost:8080/api/posts`, formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'
                 }
             });
 
-            if (response.data.status === 'OK') {
-                console.log('New post added:', response.data.data);
-                navigate('/board', { state: { newPost: response.data.data } });
+            if (response.data.postId) {
+                console.log('New post added:', response.data);
+                alert(response.data.message);
+                navigate('/board', { state: { newPost: response.data } });
             } else {
                 alert('게시글 작성에 실패했습니다. 다시 시도해 주세요.');
             }
@@ -80,6 +83,7 @@ function WritePage() {
             if (error.response && error.response.status === 401) {
                 alert('인증이 만료되었습니다. 다시 로그인해주세요.');
                 localStorage.removeItem('token');
+                localStorage.removeItem('userInfo');
                 navigate('/login');
             } else {
                 alert('게시물을 저장하는 데 실패했습니다. 다시 시도해 주세요.');

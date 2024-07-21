@@ -29,6 +29,7 @@ const LoginPage = () => {
 
                 if (data.data && data.data.accessToken) {
                     localStorage.setItem('token', data.data.accessToken);
+                    localStorage.setItem('userInfo', JSON.stringify(response.data.userInfo));
                     console.log('Token saved to localStorage:', data.data.accessToken);
                     navigate('/');
                 } else {
