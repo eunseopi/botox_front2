@@ -121,8 +121,11 @@ const RoomPage = () => {
 
 
     useEffect(() => {
-        fetchUserData();
         fetchRoomData();
+    }, [game]);
+
+    useEffect(() => {
+        fetchUserData();
     }, []);
 
     const fetchUserData = async () => {
