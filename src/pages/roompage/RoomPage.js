@@ -112,6 +112,9 @@ const RoomPage = () => {
     const modalBackground = useRef(null);
     const friendsModalBackground = useRef(null);
     const { game } = useParams();  // URL 파라미터에서 game 읽기
+    const [currentPage, setCurrentPage] = useState(1);
+    const [filteredPosts, setFilteredPosts] = useState([]);
+    const postsPerPage = 5;
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -259,6 +262,23 @@ const RoomPage = () => {
         setCreateRoomModalOpen(false);
     };
 
+    const getCurrentPosts = () => {
+        const indexOfLastPost = currentPage * postsPerPage;
+        const indexOfFirstPost = indexOfLastPost - postsPerPage;
+        return filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
+    };
+
+    const handlePageClick = (pageNumber) => {
+        setCurrentPage(pageNumber);
+    };
+
+    const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
+
+    const pageNumbers = [];
+    for (let i = 1; i <= Math.min(10, totalPages); i++) {
+        pageNumbers.push(i);
+    }
+
     const handleRoomCreated = (newRoom) => {
         const updatedRooms = [
             {
@@ -354,10 +374,11 @@ const RoomPage = () => {
                     <button
                         onClick={handleCreateRoom}
                         className="text-xl text-white bg-customBoardBg p-2 rounded-xl w-48"
-                    >방 만들기</button>
+                    >방 만들기
+                    </button>
                 </div>
                 <div className="mb-8">
-                    {rooms.map((room, index) => (
+                    {getCurrentPosts().map((room, index) => (
                         <GameCard
                             key={index}
                             room={room}
@@ -385,12 +406,23 @@ const RoomPage = () => {
                     </div>
                 </div>
                 <div className="flex justify-center text-white">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                        <button key={num} className="mx-1 px-3 py-1 rounded hover:bg-gray-700">
+                    {pageNumbers.map((num) => (
+                        <button
+                            key={num}
+                            className={`mx-1 px-3 py-1 rounded hover:bg-gray-700 ${currentPage === num ? 'bg-gray-700' : ''}`}
+                            onClick={() => handlePageClick(num)}
+                        >
                             {num}
                         </button>
                     ))}
-                    <button className="ml-2 px-3 py-1 rounded hover:bg-gray-700">다음 &gt;</button>
+                    {totalPages > 10 && (
+                        <button
+                            className="ml-2 px-3 py-1 rounded hover:bg-gray-700"
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        >
+                            다음 &gt;
+                        </button>
+                    )}
                 </div>
             </div>
             {createRoomModalOpen && (
@@ -412,7 +444,7 @@ const RoomPage = () => {
                 />
             )}
             {showProfileModal && (
-                <ProfileModal onClose={() => setShowProfileModal(false)} />
+                <ProfileModal onClose={() => setShowProfileModal(false)}/>
             )}
         </div>
     );

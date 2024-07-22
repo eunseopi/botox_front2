@@ -57,8 +57,8 @@ function VoiceChat() {
         }
     };
 
-    const handleBack = () => {
-        navigate('/room');
+    const handleBack = (game) => {
+        navigate(`/room/${game}`);
     };
 
     return (
