@@ -155,15 +155,30 @@ const RoomPage = () => {
 
     const fetchRoomData = async () => {
         try {
-            const response = await fetch(`https://botox-chat.site/api/rooms/${game}`, {
+            const gameString = typeof game === 'string' ? game : JSON.stringify(game);
+            const response = await fetch(`https://botox-chat.site/api/rooms/${gameString}`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
-            const data = await response.json();
+
+            if (!response.ok) {
+                console.error('HTTP error:', response.status, response.statusText);
+                return;
+            }
+
+            const responseData = await response.text();
+            let data;
+
+            try {
+                data = JSON.parse(responseData);
+            } catch (parseError) {
+                console.error('Error parsing JSON:', parseError, responseData);
+                return;
+            }
+
             if (data.code === "OK") {
                 setRooms(data.data);
-                // 가장 큰 roomNum 찾기
                 const maxRoomNum = Math.max(...data.data.map(room => room.roomNum), 0);
                 setLastRoomNum(maxRoomNum);
                 setFilteredPosts(data.data);
@@ -174,6 +189,7 @@ const RoomPage = () => {
             console.error('Error fetching room data:', error);
         }
     };
+
 
 
 
