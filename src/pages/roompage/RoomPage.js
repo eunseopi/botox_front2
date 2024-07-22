@@ -114,6 +114,7 @@ const RoomPage = () => {
     const { game } = useParams();  // URL 파라미터에서 game 읽기
     const [currentPage, setCurrentPage] = useState(1);
     const [filteredPosts, setFilteredPosts] = useState([]);
+    const [lastRoomNum, setLastRoomNum] = useState(0);
     const postsPerPage = 5;
     const navigate = useNavigate();
     const location = useLocation();
@@ -149,7 +150,7 @@ const RoomPage = () => {
         }
     };
 
-    const fetchRoomData = async () => {
+    const fetchRooms = async () => {
         try {
             const response = await fetch(`https://botox-chat.site/api/rooms/${game}`, {
                 headers: {
@@ -159,6 +160,9 @@ const RoomPage = () => {
             const data = await response.json();
             if (data.code === "OK") {
                 setRooms(data.data);
+                // 가장 큰 roomNum 찾기
+                const maxRoomNum = Math.max(...data.data.map(room => room.roomNum), 0);
+                setLastRoomNum(maxRoomNum);
             } else {
                 console.error('Error fetching room data:', data.message);
             }
@@ -166,6 +170,7 @@ const RoomPage = () => {
             console.error('Error fetching room data:', error);
         }
     };
+
 
 
     useEffect(() => {
@@ -430,6 +435,7 @@ const RoomPage = () => {
                     onClose={handleCloseCreateRoomModal}
                     onRoomCreated={handleRoomCreated}
                     game={game}
+                    lastRoomNum={lastRoomNum}
                 />
             )}
             {passwordModalOpen && (

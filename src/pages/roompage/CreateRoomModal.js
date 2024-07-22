@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactDOM from "react-dom";
 
-const CreateRoomModal = ({ onClose, onRoomCreated, game }) => {
+const CreateRoomModal = ({ onClose, onRoomCreated, game, lastRoomNum }) => {
     const [roomData, setRoomData] = useState({
         roomTitle: '',
         roomContent: '',
@@ -22,17 +22,29 @@ const CreateRoomModal = ({ onClose, onRoomCreated, game }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            const currentDate = new Date().toISOString();
+            const requestData = {
+                roomNum: lastRoomNum + 1,
+                roomTitle: roomData.roomTitle,
+                roomContent: roomData.roomContent,
+                roomType: roomData.roomType,
+                gameName: roomData.gameName,
+                roomMasterId: JSON.parse(localStorage.getItem('userInfo')).id,
+                roomStatus: 'OPEN',
+                roomPassword: roomData.roomPassword,
+                roomCapacityLimit: parseInt(roomData.roomCapacityLimit),
+                roomUpdateTime: currentDate,
+                roomCreateAt: currentDate,
+                roomUserCount: 1 // 방장 포함
+            };
+
             const response = await fetch('https://botox-chat.site/api/rooms', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    ...roomData,
-                    roomMasterId: JSON.parse(localStorage.getItem('userInfo')).id,
-                    roomStatus: 'OPEN',
-                }),
+                body: JSON.stringify(requestData),
             });
 
             if (!response.ok) {
