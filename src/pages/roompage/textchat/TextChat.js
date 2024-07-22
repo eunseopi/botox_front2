@@ -95,8 +95,8 @@ const TextChat = () => {
     //         }
     //     }
     // };
-    const handleExit = () => {
-        navigate("/room");
+    const handleExit = (game) => {
+        navigate(`/room/${game}`);
     };
 
     const handleReport = () => {
