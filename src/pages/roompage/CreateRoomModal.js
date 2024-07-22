@@ -4,7 +4,6 @@ import ReactDOM from 'react-dom';
 const CreateRoomModal = ({ onClose, onRoomCreated = () => {}, game, lastRoomNum }) => {
     const [roomData, setRoomData] = useState({
         roomTitle: '',
-        roomContent: '',
         roomType: 'VOICE',
         gameName: game,
         roomPassword: '',
@@ -27,12 +26,14 @@ const CreateRoomModal = ({ onClose, onRoomCreated = () => {}, game, lastRoomNum 
             if (!userInfo || !userInfo.id) {
                 throw new Error('User information not found');
             }
+
+            const newRoomNum = lastRoomNum + 1;
             const requestData = {
-                roomNum: lastRoomNum + 1,
+                roomNum: newRoomNum,
                 roomTitle: roomData.roomTitle,
-                roomContent: roomData.roomContent,
+                roomContent: game, // game을 roomContent로 사용
                 roomType: roomData.roomType,
-                gameName: game, // 직접 game prop 사용
+                gameName: roomData.gameName,
                 roomMasterId: userInfo.id,
                 roomStatus: 'OPEN',
                 roomPassword: roomData.roomPassword,
@@ -41,6 +42,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated = () => {}, game, lastRoomNum 
                 roomCreateAt: currentDate,
                 roomUserCount: 1 // 방장 포함
             };
+
 
             const response = await fetch(`https://botox-chat.site/api/rooms`, {
                 method: 'POST',
@@ -58,7 +60,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated = () => {}, game, lastRoomNum 
 
             const result = await response.json();
             if (result.code === 'CREATED') {
-                onRoomCreated(result.data); // 정상 호출
+                onRoomCreated({...result.data, roomNum: newRoomNum}); // 정상 호출
                 onClose();
             } else {
                 throw new Error(result.message || 'Room creation failed');
@@ -86,14 +88,6 @@ const CreateRoomModal = ({ onClose, onRoomCreated = () => {}, game, lastRoomNum 
                                 value={roomData.roomTitle}
                                 onChange={handleChange}
                                 placeholder="방 제목"
-                                className="w-full text-white bg-customMainBg p-2 mb-2 border rounded"
-                                required
-                            />
-                            <textarea
-                                name="roomContent"
-                                value={roomData.roomContent}
-                                onChange={handleChange}
-                                placeholder="방 설명"
                                 className="w-full text-white bg-customMainBg p-2 mb-2 border rounded"
                                 required
                             />
