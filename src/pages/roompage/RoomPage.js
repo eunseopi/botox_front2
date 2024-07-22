@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import menuImage from "../../images/menu.png";
 import roomIcon from '../../images/roomIcon.png';
 import egg from '../../images/egg.png';
 import search from "../../images/search.png";
 import CreateRoomModal from './CreateRoomModal';
-import PasswordModal from './modal/PassWordModal'; // PasswordModal 임포트 추가
+import PasswordModal from './modal/PassWordModal';
 import { AiOutlineUserAdd } from "react-icons/ai";
 import { FaClipboard, FaHome, FaLock, FaSignOutAlt, FaUser, FaUserFriends } from 'react-icons/fa';
 import ProfileModal from "./modal/ProfileModal";
+import FriendSearchModal from "./FriendSearchModal";
 
 const GameCard = ({ room, onClick }) => (
     <div className="bg-customBoardBg rounded-lg p-4 mb-4 shadow-lg m-auto w-8/12 cursor-pointer"
@@ -299,6 +300,12 @@ const RoomPage = () => {
                     profileImage={profileImage}
                     nickname={nickname}
                     onClose={() => setShowProfileModal(false)}
+                />
+            )}
+
+            {showFriendSearchModal && (
+                <FriendSearchModal
+                    onClose={() => setShowFriendSearchModal(false)}
                 />
             )}
 
