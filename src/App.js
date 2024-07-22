@@ -20,7 +20,7 @@ function App() {
             <Route path="/signup" element={<SignUpPage />}/>
             <Route path="/write" element={<WritePage />}/>
             <Route path="/post/:id" element={<PostDetailPage/>}/>
-            <Route path="/room" element={<RoomPage/>}/>
+            <Route path="/room/:game" element={<RoomPage/>}/>
             <Route path='/voicechat/:id' element={<VoiceChat/>}/>
             <Route path='/textchat/:id' element={<TextChat/>}/>
         </Routes>

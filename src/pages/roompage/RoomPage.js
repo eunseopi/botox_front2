@@ -155,9 +155,7 @@ const RoomPage = () => {
             });
             const data = await response.json();
             if (data.code === "OK") {
-                // 게임에 해당하는 방만 필터링
-                const filteredRooms = data.data.filter(room => room.roomContent === game);
-                setRooms(filteredRooms);
+                setRooms(data.data);
             } else {
                 console.error('Error fetching room data:', data.message);
             }
