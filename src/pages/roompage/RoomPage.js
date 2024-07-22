@@ -121,6 +121,11 @@ const RoomPage = () => {
 
 
     useEffect(() => {
+        // 컴포넌트 마운트 시 로컬 스토리지에서 마지막 방 번호를 불러옵니다.
+        const storedLastRoomNum = localStorage.getItem(`lastRoomNum_${game}`);
+        if (storedLastRoomNum) {
+            setLastRoomNum(parseInt(storedLastRoomNum, 10));
+        }
         fetchRoomData();
     }, [game]);
 
@@ -182,18 +187,23 @@ const RoomPage = () => {
                 throw new Error('Invalid data received from server');
             }
 
-            setRooms(result.data);
-            setFilteredPosts(result.data);
+            // 현재 게임에 해당하는 방만 필터링합니다.
+            const filteredRooms = result.data.filter(room => room.roomContent === game);
+            setRooms(filteredRooms);
+            setFilteredPosts(filteredRooms);
 
-            // 최대 방 번호 계산
-            const maxRoomNum = result.data.length > 0 ? Math.max(...result.data.map(room => room.roomNum)) : 0;
-            setLastRoomNum(maxRoomNum);
+            // 최대 방 번호 계산 및 업데이트
+            const maxRoomNum = filteredRooms.length > 0
+                ? Math.max(...filteredRooms.map(room => room.roomNum))
+                : 0;
+            const newLastRoomNum = Math.max(maxRoomNum, lastRoomNum);
+            setLastRoomNum(newLastRoomNum);
+            localStorage.setItem(`lastRoomNum_${game}`, newLastRoomNum.toString());
 
         } catch (error) {
             console.error('Error fetching room data:', error);
             setRooms([]);
             setFilteredPosts([]);
-            setLastRoomNum(0);
         }
     };
 
@@ -243,7 +253,7 @@ const RoomPage = () => {
     };
 
     const enterRoom = (room) => {
-        if (room.roomType === 'voice') {
+        if (room.roomType === 'VOICE') {
             navigate(`/voicechat/${room.roomNum}`, { state: { roomInfo: room } });
         } else {
             navigate(`/textchat/${room.roomNum}`, { state: { roomInfo: room } });
@@ -287,17 +297,20 @@ const RoomPage = () => {
     }
 
     const handleRoomCreated = (newRoom) => {
-        const updatedRooms = [
-            {
-                ...newRoom,
-                roomContent: game  // 게임 정보를 roomContent에 저장
-            },
-            ...rooms
-        ];
+        const newRoomNum = lastRoomNum + 1;
+        const updatedRoom = {
+            ...newRoom,
+            roomNum: newRoomNum,
+            roomContent: game
+        };
+        const updatedRooms = [updatedRoom, ...rooms];
         setRooms(updatedRooms);
         setFilteredPosts(updatedRooms);
+        setLastRoomNum(newRoomNum);
+        localStorage.setItem(`lastRoomNum_${game}`, newRoomNum.toString());
         setCreateRoomModalOpen(false);
     };
+
 
     useEffect(() => {
         document.addEventListener('mousedown', handleClickOutside);
