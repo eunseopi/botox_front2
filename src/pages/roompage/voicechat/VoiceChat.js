@@ -59,7 +59,7 @@ function VoiceChat() {
     };
 
     const handleBack = () => {
-        navigate(`/room/${roomInfo.game}`);  // gameId를 사용하여 올바른 URL로 돌아가기
+        navigate(`/room/${roomInfo.gameName}`);
     };
 
     return (
