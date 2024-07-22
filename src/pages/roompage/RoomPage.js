@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useParams } from "react-router-dom";
-import menuImage from "../../images/menu.png";
+import { useNavigate, useParams } from 'react-router-dom';
+import menuImage from '../../images/menu.png';
 import roomIcon from '../../images/roomIcon.png';
 import egg from '../../images/egg.png';
-import search from "../../images/search.png";
+import search from '../../images/search.png';
 import CreateRoomModal from './CreateRoomModal';
 import PasswordModal from './modal/PassWordModal';
-import { AiOutlineUserAdd } from "react-icons/ai";
+import { AiOutlineUserAdd } from 'react-icons/ai';
 import { FaClipboard, FaHome, FaLock, FaSignOutAlt, FaUser, FaUserFriends } from 'react-icons/fa';
-import ProfileModal from "./modal/ProfileModal";
+import ProfileModal from './modal/ProfileModal';
 
 const GameCard = ({ room, onClick }) => (
     <div className="bg-customBoardBg rounded-lg p-4 mb-4 shadow-lg m-auto w-8/12 cursor-pointer"
@@ -301,7 +301,6 @@ const RoomPage = () => {
                     onClose={() => setShowProfileModal(false)}
                 />
             )}
-
 
             <div className="flex flex-col items-center mt-4">
                 <input
