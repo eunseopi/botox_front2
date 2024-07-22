@@ -24,14 +24,18 @@ const CreateRoomModal = ({ onClose, onRoomCreated, game, lastRoomNum }) => {
         try {
             const currentDate = new Date().toISOString();
             const requestData = {
+                roomNum: lastRoomNum + 1,
                 roomTitle: roomData.roomTitle,
                 roomContent: roomData.roomContent,
                 roomType: roomData.roomType,
-                gameName: game,  // 여기서 game prop을 사용합니다
+                gameName: game,
                 roomMasterId: JSON.parse(localStorage.getItem('userInfo')).id,
                 roomStatus: 'OPEN',
                 roomPassword: roomData.roomPassword,
                 roomCapacityLimit: parseInt(roomData.roomCapacityLimit),
+                roomUpdateTime: currentDate,
+                roomCreateAt: currentDate,
+                roomUserCount: 1 // 방장 포함
             };
 
             const response = await fetch('https://botox-chat.site/api/rooms', {
