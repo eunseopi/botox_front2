@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import ReactDOM from "react-dom";
+import ReactDOM from 'react-dom';
 
-const CreateRoomModal = ({ onClose, onRoomCreated, game, lastRoomNum }) => {
+const CreateRoomModal = ({ onClose, onRoomCreated = () => {}, game, lastRoomNum }) => {
     const [roomData, setRoomData] = useState({
         roomTitle: '',
         roomContent: '',
@@ -58,7 +58,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated, game, lastRoomNum }) => {
 
             const result = await response.json();
             if (result.code === 'CREATED') {
-                onRoomCreated(result.data);
+                onRoomCreated(result.data); // 정상 호출
                 onClose();
             } else {
                 throw new Error(result.message || 'Room creation failed');
