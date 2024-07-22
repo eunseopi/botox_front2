@@ -9,7 +9,6 @@ import PasswordModal from './modal/PassWordModal';
 import { AiOutlineUserAdd } from "react-icons/ai";
 import { FaClipboard, FaHome, FaLock, FaSignOutAlt, FaUser, FaUserFriends } from 'react-icons/fa';
 import ProfileModal from "./modal/ProfileModal";
-import FriendSearchModal from "./FriendSearchModal";
 
 const GameCard = ({ room, onClick }) => (
     <div className="bg-customBoardBg rounded-lg p-4 mb-4 shadow-lg m-auto w-8/12 cursor-pointer"
@@ -303,11 +302,6 @@ const RoomPage = () => {
                 />
             )}
 
-            {showFriendSearchModal && (
-                <FriendSearchModal
-                    onClose={() => setShowFriendSearchModal(false)}
-                />
-            )}
 
             <div className="flex flex-col items-center mt-4">
                 <input
