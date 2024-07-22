@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import ReactDOM from "react-dom";
 
-const CreateRoomModal = ({ onClose, onRoomCreated }) => {
+const CreateRoomModal = ({ onClose, onRoomCreated, game }) => {
     const [roomData, setRoomData] = useState({
         roomTitle: '',
         roomContent: '',
-        roomType: 'voice',
-        gameName: '',
+        roomType: 'VOICE',
+        gameName: game,
         roomPassword: '',
         roomCapacityLimit: 2,
     });
@@ -19,34 +19,19 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        const newRoom = {
-            ...roomData,
-            roomNum: Math.floor(Math.random() * 1000000).toString(),
-            roomMasterId: "방장", // 실제 구현에서는 로그인한 사용자의 ID를 사용해야 합니다.
-            roomStatus: true,
-            roomCreateAt: new Date().toISOString(),
-            chatType: roomData.roomType === 'voice' ? 'VoiceChat' : 'TextChat',
-            roomPassword: roomData.roomPassword,
-        };
-
-        onRoomCreated(newRoom);
-        onClose();
-
-        // API 호출 부분은 주석 처리
-        /*
         try {
-            const response = await fetch('/api/rooms', {
+            const response = await fetch('https://botox-chat.site/api/rooms', {
                 method: 'POST',
                 headers: {
-                    'Authorization': 'Bearer <your-token>',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     ...roomData,
-                    roomMasterId: 1,
-                    roomStatus: true,
+                    roomMasterId: JSON.parse(localStorage.getItem('userInfo')).id,
+                    roomStatus: 'OPEN',
                 }),
             });
 
@@ -55,16 +40,20 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
             }
 
             const result = await response.json();
-            onRoomCreated(result);
+            if (result.code === 'CREATED') {
+                onRoomCreated(result.data);
+                onClose();
+            } else {
+                throw new Error(result.message || 'Room creation failed');
+            }
         } catch (error) {
             console.error('Error creating room:', error);
+            alert('방 생성에 실패했습니다. 다시 시도해 주세요.');
         }
-        */
     };
 
     return (
         <>
-            {/* 검정색 50% 불투명도 배경 요소를 별도로 추가 */}
             {ReactDOM.createPortal(
                 <div className="fixed inset-0 bg-black bg-opacity-50"></div>,
                 document.getElementById('backdrop-root')
@@ -98,18 +87,9 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                                 className="w-full text-white bg-customMainBg p-2 mb-2 border rounded"
                                 required
                             >
-                                <option value="voice">음성</option>
-                                <option value="text">텍스트</option>
+                                <option value="VOICE">음성</option>
+                                <option value="TEXT">텍스트</option>
                             </select>
-                            <input
-                                type="text"
-                                name="gameName"
-                                value={roomData.gameName}
-                                onChange={handleChange}
-                                placeholder="게임 이름"
-                                className="w-full text-white bg-customMainBg p-2 mb-2 border rounded"
-                                required
-                            />
                             <input
                                 type="password"
                                 name="roomPassword"
