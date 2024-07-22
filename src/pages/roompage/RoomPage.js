@@ -155,32 +155,41 @@ const RoomPage = () => {
 
     const fetchRoomData = async () => {
         try {
-            const response = await fetch('https://botox-chat.site/api/rooms', {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                throw new Error('No token found');
+            }
+
+            // game 변수는 useParams()로 가져온 URL 파라미터입니다.
+            const response = await fetch(`https://botox-chat.site/api/rooms/${game}`, {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 },
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to fetch rooms');
+                if (response.status === 403) {
+                    throw new Error('Authentication failed');
+                }
+                const errorText = await response.text();
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
             }
 
             const result = await response.json();
-            // 게임 이름으로 필터링
-            const filteredRooms = result.data.filter(room => room.gameName === game);
 
-            // 상태 업데이트
-            setRooms(filteredRooms);
-            setFilteredPosts(filteredRooms);
+            // API가 이미 필터링된 결과를 반환하므로, 추가 필터링이 필요 없을 수 있습니다.
+            setRooms(result.data);
+            setFilteredPosts(result.data);
 
             // 최대 방 번호 계산
-            const maxRoomNum = Math.max(...filteredRooms.map(room => room.roomNum), 0);
+            const maxRoomNum = Math.max(...result.data.map(room => room.roomNum), 0);
             setLastRoomNum(maxRoomNum);
 
         } catch (error) {
             console.error('Error fetching room data:', error);
+            // 에러 처리 (예: 사용자에게 알림 표시)
         }
     };
 
