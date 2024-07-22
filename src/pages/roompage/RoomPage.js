@@ -166,6 +166,7 @@ const RoomPage = () => {
                 // 가장 큰 roomNum 찾기
                 const maxRoomNum = Math.max(...data.data.map(room => room.roomNum), 0);
                 setLastRoomNum(maxRoomNum);
+                setFilteredPosts(data.data);
             } else {
                 console.error('Error fetching room data:', data.message);
             }
@@ -296,6 +297,7 @@ const RoomPage = () => {
             ...rooms
         ];
         setRooms(updatedRooms);
+        setFilteredPosts(updatedRooms);
         setCreateRoomModalOpen(false);
     };
 
