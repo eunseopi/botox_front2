@@ -5,21 +5,22 @@ import mute from '../../../images/mute.png';
 import call from '../../../images/call.png';
 import report from '../../../images/report.png';
 import friend from '../../../images/friend.png';
-import { FaArrowLeft } from 'react-icons/fa6';
+import { FaArrowLeft } from 'react-icons/fa';
 
 function VoiceChat() {
     const navigate = useNavigate();
     const location = useLocation();
-    const roomInfo = location.state?.roomInfo || {};
+    const roomInfo = location.state?.roomInfo || {};  // 방 정보 가져오기
     const textareaRef = useRef(null);
     const [inUsers, setInUsers] = useState([]);
     const [messages, setMessages] = useState([]);
 
     useEffect(() => {
+        // 방에 들어갔을 때 더미 사용자 설정
         const dummyUsers = Array(roomInfo.roomCapacityLimit).fill().map((_, index) => ({
             id: index + 1,
             name: index === 0 ? "방장" : `사용자${index + 1}`
-    }));
+        }));
         setInUsers(dummyUsers.slice(0, Math.floor(Math.random() * roomInfo.roomCapacityLimit) + 1));
     }, [roomInfo.roomCapacityLimit]);
 
@@ -36,29 +37,29 @@ function VoiceChat() {
             setMessages(prevMessages => [...prevMessages, newMessage]);
             textareaRef.current.value = "";
 
-            // 나중에 API 호출 할 코드.
+            // 나중에 API 호출 할 코드
             /*
-           fetch('/api/chats', {
-               method: 'POST',
-               headers: {
-                   'Authorization': 'Bearer <your-token>',
-                   'Content-Type': 'application/json'
-               },
-               body: JSON.stringify({
-                   roomId: roomInfo.id,
-                   senderId: 1, // 실제 사용자 ID로 대체해야 합니다
-                   content: content
-               })
-           })
-           .then(response => response.json())
-           .then(data => console.log(data))
-           .catch(error => console.error('Error:', error));
-           */
+            fetch('/api/chats', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer <your-token>',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    roomId: roomInfo.id,
+                    senderId: 1, // 실제 사용자 ID로 대체해야 합니다
+                    content: content
+                })
+            })
+            .then(response => response.json())
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+            */
         }
     };
 
-    const handleBack = (game) => {
-        navigate(`/room/${game}`);
+    const handleBack = () => {
+        navigate(`/room/${roomInfo.game}`);  // gameId를 사용하여 올바른 URL로 돌아가기
     };
 
     return (
