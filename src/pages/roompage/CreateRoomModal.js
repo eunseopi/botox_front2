@@ -23,13 +23,17 @@ const CreateRoomModal = ({ onClose, onRoomCreated, game, lastRoomNum }) => {
         e.preventDefault();
         try {
             const currentDate = new Date().toISOString();
+            const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+            if (!userInfo || !userInfo.id) {
+                throw new Error('User information not found');
+            }
             const requestData = {
                 roomNum: lastRoomNum + 1,
                 roomTitle: roomData.roomTitle,
                 roomContent: roomData.roomContent,
                 roomType: roomData.roomType,
-                gameName: game,
-                roomMasterId: JSON.parse(localStorage.getItem('userInfo')).id,
+                gameName: game, // 직접 game prop 사용
+                roomMasterId: userInfo.id,
                 roomStatus: 'OPEN',
                 roomPassword: roomData.roomPassword,
                 roomCapacityLimit: parseInt(roomData.roomCapacityLimit),
@@ -48,7 +52,8 @@ const CreateRoomModal = ({ onClose, onRoomCreated, game, lastRoomNum }) => {
             });
 
             if (!response.ok) {
-                throw new Error('Room creation failed');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Room creation failed');
             }
 
             const result = await response.json();
