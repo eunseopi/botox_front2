@@ -150,7 +150,7 @@ const RoomPage = () => {
         }
     };
 
-    const fetchRooms = async () => {
+    const fetchRoomData = async () => {
         try {
             const response = await fetch(`https://botox-chat.site/api/rooms/${game}`, {
                 headers: {
