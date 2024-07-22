@@ -160,7 +160,6 @@ const RoomPage = () => {
                 throw new Error('No token found');
             }
 
-            // game 변수는 useParams()로 가져온 URL 파라미터입니다.
             const response = await fetch(`https://botox-chat.site/api/rooms/${game}`, {
                 method: 'GET',
                 headers: {
@@ -179,17 +178,22 @@ const RoomPage = () => {
 
             const result = await response.json();
 
-            // API가 이미 필터링된 결과를 반환하므로, 추가 필터링이 필요 없을 수 있습니다.
+            if (!result.data || !Array.isArray(result.data)) {
+                throw new Error('Invalid data received from server');
+            }
+
             setRooms(result.data);
             setFilteredPosts(result.data);
 
             // 최대 방 번호 계산
-            const maxRoomNum = Math.max(...result.data.map(room => room.roomNum), 0);
+            const maxRoomNum = result.data.length > 0 ? Math.max(...result.data.map(room => room.roomNum)) : 0;
             setLastRoomNum(maxRoomNum);
 
         } catch (error) {
             console.error('Error fetching room data:', error);
-            // 에러 처리 (예: 사용자에게 알림 표시)
+            setRooms([]);
+            setFilteredPosts([]);
+            setLastRoomNum(0);
         }
     };
 
@@ -263,6 +267,9 @@ const RoomPage = () => {
     };
 
     const getCurrentPosts = () => {
+        if (!filteredPosts || filteredPosts.length === 0) {
+            return [];
+        }
         const indexOfLastPost = currentPage * postsPerPage;
         const indexOfFirstPost = indexOfLastPost - postsPerPage;
         return filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
@@ -272,7 +279,7 @@ const RoomPage = () => {
         setCurrentPage(pageNumber);
     };
 
-    const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
+    const totalPages = filteredPosts ? Math.ceil(filteredPosts.length / postsPerPage) : 0;
 
     const pageNumbers = [];
     for (let i = 1; i <= Math.min(10, totalPages); i++) {
