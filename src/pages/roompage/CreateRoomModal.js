@@ -42,7 +42,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated, game, lastRoomNum }) => {
                 roomUserCount: 1 // 방장 포함
             };
 
-            const response = await fetch('https://botox-chat.site/api/rooms', {
+            const response = await fetch(`https://botox-chat.site/api/rooms/${roomData.gameName}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
