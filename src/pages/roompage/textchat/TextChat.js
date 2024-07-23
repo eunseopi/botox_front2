@@ -1,16 +1,52 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {useLocation, useNavigate} from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { FaArrowLeft, FaUser } from 'react-icons/fa';
-import title from '../..//../images/title.png'
+import { w3cwebsocket as W3CWebSocket } from 'websocket';
+import title from '../../../images/title.png';
 
 const TextChat = () => {
     const [messages, setMessages] = useState([]);
+    const [newMessage, setNewMessage] = useState('');
+    const [textWsClient, setTextWsClient] = useState(null);
     const chatContainerRef = useRef(null);
     const textareaRef = useRef(null);
     const navigate = useNavigate();
     const location = useLocation();
     const roomInfo = location.state?.roomInfo || {};
     const [inUsers, setInUsers] = useState([]);
+    const WS_SERVER_URL = 'wss://botox-chat.site/ws';
+
+    useEffect(() => {
+        const textClient = new W3CWebSocket(WS_SERVER_URL);
+
+        textClient.onopen = () => {
+            console.log('텍스트 WebSocket 클라이언트 연결됨');
+            setTextWsClient(textClient);
+            // 연결 후 방 정보 전송
+            textClient.send(JSON.stringify({
+                type: 'join',
+                roomNum: roomInfo.roomNum
+            }));
+        };
+
+        textClient.onmessage = (message) => {
+            const data = JSON.parse(message.data.toString());
+            handleTextMessage(data);
+        };
+
+        textClient.onclose = () => {
+            console.log('텍스트 WebSocket 클라이언트 연결 종료');
+            setTextWsClient(null);
+        };
+
+        textClient.onerror = (error) => {
+            console.error('텍스트 WebSocket 오류:', error);
+        };
+
+        return () => {
+            textClient.close();
+        };
+    }, [WS_SERVER_URL, roomInfo.roomNum]);
 
     useEffect(() => {
         if (chatContainerRef.current) {
@@ -19,7 +55,6 @@ const TextChat = () => {
     }, [messages]);
 
     useEffect(() => {
-        // 실제 사용할 때 API 가져와서 바꾸기.
         const dummyUsers = Array(roomInfo.roomCapacityLimit).fill().map((_, index) => ({
             id: index + 1,
             name: index === 0 ? "방장" : `사용자${index + 1}`
@@ -27,35 +62,28 @@ const TextChat = () => {
         setInUsers(dummyUsers.slice(0, Math.floor(Math.random() * roomInfo.roomCapacityLimit) + 1));
     }, [roomInfo.roomCapacityLimit]);
 
-    const handleSendMessage = () => {
-        if (textareaRef.current) {
-            const message = textareaRef.current.value.trim();
-            if (message !== "") {
-                setMessages(prevMessages => [...prevMessages, { isMyMessage: true, content: message }]);
-                textareaRef.current.value = "";
-                simulateResponse();
-            }
+    const handleTextMessage = (data) => {
+        if (data.type === 'message') {
+            setMessages(prevMessages => [...prevMessages, { isMyMessage: false, content: `${data.nickName}: ${data.message}` }]);
         }
     };
 
-    // 나중에 API 호출 할 코드.
-    /*
-    fetch('/api/chats', {
-        method: 'POST',
-        headers: {
-            'Authorization': 'Bearer <your-token>',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            roomId: roomInfo.id,
-            senderId: 1, // 실제 사용자 ID로 대체해야 합니다
-            content: content
-        })
-    })
-    .then(response => response.json())
-    .then(data => console.log(data))
-    .catch(error => console.error('Error:', error));
-    */
+    const handleSendMessage = () => {
+        if (textareaRef.current) {
+            const message = textareaRef.current.value.trim();
+            if (message !== "" && textWsClient?.readyState === WebSocket.OPEN) {
+                textWsClient.send(JSON.stringify({
+                    type: 'message',
+                    roomNum: roomInfo.roomNum,
+                    message: message
+                }));
+                setMessages(prevMessages => [...prevMessages, { isMyMessage: true, content: message }]);
+                textareaRef.current.value = "";
+            } else {
+                console.error('텍스트 WebSocket이 열려있지 않습니다');
+            }
+        }
+    };
 
     const handleKeyPress = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -64,37 +92,6 @@ const TextChat = () => {
         }
     };
 
-    const simulateResponse = () => {
-        setTimeout(() => {
-            const responses = [
-                "네, 알겠습니다.",
-                "좋아요!",
-                "그렇군요.",
-                "알겠습니다.",
-                "네, 그렇게 하죠.",
-            ];
-            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-            setMessages(prevMessages => [...prevMessages, { isMyMessage: false, content: randomResponse }]);
-        }, 1000);
-    };
-
-
-    // const handleSendMessage = () => {
-    //     if (textareaRef.current) {
-    //         const message = textareaRef.current.value.trim();
-    //         if (message !== "") {
-    //             const newMessage = {
-    //                 id: Date.now(),
-    //                 senderId: 1, // 임시로 고정된 senderId 사용
-    //                 senderName: "나", // 임시로 고정된 이름 사용
-    //                 content: message,
-    //                 timestamp: new Date().toISOString(),
-    //             };
-    //             setMessages(prevMessages => [...prevMessages, newMessage]);
-    //             textareaRef.current.value = "";
-    //         }
-    //     }
-    // };
     const handleExit = () => {
         navigate(`/room/${roomInfo.gameName}`);
     };
@@ -172,6 +169,6 @@ const TextChat = () => {
             </div>
         </div>
     );
-}
+};
 
 export default TextChat;

@@ -252,6 +252,7 @@ const RoomPage = () => {
         }
     };
 
+
     const enterRoom = (room) => {
         if (room.roomType === 'VOICE') {
             navigate(`/voicechat/${room.roomNum}`, { state: { roomInfo: room } });
