@@ -74,23 +74,15 @@ const GameCard = ({ post, onClick }) => (
         <div className="flex items-center justify-between mb-2">
             <div className="flex items-center">
                 <div className="mr-8">
-                    <img src={roomIcon} alt="Room" className="w-3 h-3 ml-5 mr-3 mt-2 mb-2"/>
-                    <p className="text-white mt-2">{post.postId}</p>
+                    <p className="flex text-white ml-2 mt-2">{post.postId}</p>
                 </div>
-                <div>
-                    <h3 className="font-bold text-white">{post.title}</h3>
-                    <div className="flex items-center">
-                        <img src={egg} alt="Egg" className="w-5 h-3 mr-2"/>
-                        <p className="text-customIdBg">{post.userNickName}</p>
+                <div className="flex">
+                    <h3 className="font-bold text-white mt-2">{post.title}</h3>
+                    <div className="flex mt-3 fixed right-80">
+                        <img src={egg} alt="Egg" className="w-5 h-3 mt-2 mr-2"/>
+                        <p className="text-white">{post.authorId}</p>
                     </div>
                 </div>
-            </div>
-            <div className="ml-auto">
-                {post.image ? (
-                    <img src={post.image} alt="게시글 이미지" className="w-44 h-24 object-cover"/>
-                ) : (
-                    <img src={good} alt="Good" className="w-44 h-24"/>
-                )}
             </div>
         </div>
     </div>
@@ -124,6 +116,7 @@ const BoardPage = () => {
                 }
             });
             if (response.data && response.data.data && Array.isArray(response.data.data.content)) {
+                console.log('Posts data:', response.data.data.content); // 추가된 로그
                 setPosts(response.data.data.content);
                 setFilteredPosts(response.data.data.content);
             } else {
