@@ -9,6 +9,7 @@ import PostDetailPage from "./pages/postpage/PostDetailPage";
 import RoomPage from "./pages/roompage/RoomPage";
 import VoiceChat from "./pages/roompage/voicechat/VoiceChat";
 import TextChat from "./pages/roompage/textchat/TextChat";
+import Room from "./pages/roompage/Room";
 
 function App() {
   return (
@@ -21,8 +22,8 @@ function App() {
             <Route path="/write" element={<WritePage />}/>
             <Route path="/post/:id" element={<PostDetailPage/>}/>
             <Route path="/room/:game" element={<RoomPage/>}/>
-            <Route path='/voicechat/:id' element={<VoiceChat/>}/>
-            <Route path='/textchat/:id' element={<TextChat/>}/>
+            <Route path="/rooms/:roomNum" element={<Room />} />
+
         </Routes>
     </Router>
   );
