@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 
-const CreateRoomModal = ({ onClose, onRoomCreated = () => {}, game, lastRoomNum }) => {
+const CreateRoomModal = ({ onClose, onRoomCreated = () => {}, game }) => {
     const [roomData, setRoomData] = useState({
         roomTitle: '',
         roomType: 'VOICE',
@@ -27,9 +27,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated = () => {}, game, lastRoomNum 
                 throw new Error('User information not found');
             }
 
-            const newRoomNum = lastRoomNum + 1;
             const requestData = {
-                roomNum: newRoomNum,
                 roomTitle: roomData.roomTitle,
                 roomContent: game, // game을 roomContent로 사용
                 roomType: roomData.roomType,
@@ -42,7 +40,6 @@ const CreateRoomModal = ({ onClose, onRoomCreated = () => {}, game, lastRoomNum 
                 roomCreateAt: currentDate,
                 roomUserCount: 1 // 방장 포함
             };
-
 
             const response = await fetch(`https://botox-chat.site/api/rooms`, {
                 method: 'POST',
@@ -60,7 +57,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated = () => {}, game, lastRoomNum 
 
             const result = await response.json();
             if (result.code === 'CREATED') {
-                onRoomCreated({...result.data, roomNum: newRoomNum}); // 정상 호출
+                onRoomCreated(result.data); // 방 정보 전달
                 onClose();
             } else {
                 throw new Error(result.message || 'Room creation failed');

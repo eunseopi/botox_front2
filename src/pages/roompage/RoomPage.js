@@ -73,8 +73,7 @@ const GameCard = ({ room, onClick }) => (
         <div className="flex items-center justify-between mb-2">
             <div className="flex items-center">
                 <div className="mr-8">
-                    <img src={roomIcon} alt="Room" className="w-3 h-3 ml-5 mr-3 mt-2 mb-2 "/>
-                    <p className="text-white text-center">{room.roomNum}</p>
+                    <p className="text-white ml-2 text-center">{room.roomNum}</p>
                 </div>
                 <div>
                     <div className="flex items-center">
@@ -118,16 +117,30 @@ const RoomPage = () => {
     const postsPerPage = 5;
     const navigate = useNavigate();
     const location = useLocation();
-
+    const roomInfo = location.state?.roomInfo || {};
+    const [lastRoomNums, setLastRoomNums] = useState({});
 
     useEffect(() => {
-        // 컴포넌트 마운트 시 로컬 스토리지에서 마지막 방 번호를 불러옵니다.
         const storedLastRoomNum = localStorage.getItem(`lastRoomNum_${game}`);
         if (storedLastRoomNum) {
-            setLastRoomNum(parseInt(storedLastRoomNum, 10));
+            setLastRoomNums(prevNums => ({
+                ...prevNums,
+                [game]: parseInt(storedLastRoomNum, 10)
+            }));
+        } else {
+            setLastRoomNums(prevNums => ({
+                ...prevNums,
+                [game]: 0
+            }));
         }
         fetchRoomData();
     }, [game]);
+
+    // useEffect에서 마지막 방 번호 로드
+    useEffect(() => {
+        const storedLastRoomNums = JSON.parse(localStorage.getItem('lastRoomNums')) || {};
+        setLastRoomNums(storedLastRoomNums);
+    }, []);
 
     useEffect(() => {
         fetchUserData();
@@ -192,13 +205,22 @@ const RoomPage = () => {
             setRooms(filteredRooms);
             setFilteredPosts(filteredRooms);
 
-            // 최대 방 번호 계산 및 업데이트
-            const maxRoomNum = filteredRooms.length > 0
-                ? Math.max(...filteredRooms.map(room => room.roomNum))
+            // 방 번호에 따라 정렬
+            const sortedRooms = filteredRooms.sort((a, b) => a.roomNum - b.roomNum);
+            setRooms(sortedRooms);
+            setFilteredPosts(sortedRooms);
+
+            // 현재 게임의 최대 방 번호 계산
+            const maxRoomNum = sortedRooms.length > 0
+                ? Math.max(...sortedRooms.map(room => room.roomNum))
                 : 0;
-            const newLastRoomNum = Math.max(maxRoomNum, lastRoomNum);
-            setLastRoomNum(newLastRoomNum);
-            localStorage.setItem(`lastRoomNum_${game}`, newLastRoomNum.toString());
+
+            // 마지막 방 번호 업데이트
+            setLastRoomNums(prevNums => ({
+                ...prevNums,
+                [game]: maxRoomNum
+            }));
+            localStorage.setItem(`lastRoomNum_${game}`, maxRoomNum.toString());
 
         } catch (error) {
             console.error('Error fetching room data:', error);
@@ -252,13 +274,8 @@ const RoomPage = () => {
         }
     };
 
-
     const enterRoom = (room) => {
-        if (room.roomType === 'VOICE') {
-            navigate(`/voicechat/${room.roomNum}`, { state: { roomInfo: room } });
-        } else {
-            navigate(`/textchat/${room.roomNum}`, { state: { roomInfo: room } });
-        }
+        navigate(`/rooms/${room.roomNum}`, { state: { roomInfo: room } });
     };
 
     const handlePasswordConfirm = (enteredPassword) => {
@@ -298,19 +315,20 @@ const RoomPage = () => {
     }
 
     const handleRoomCreated = (newRoom) => {
-        const newRoomNum = lastRoomNum + 1;
+        // 서버로부터 받은 방 정보를 그대로 사용
         const updatedRoom = {
             ...newRoom,
-            roomNum: newRoomNum,
-            roomContent: game
+            roomContent: newRoom.roomContent
         };
+
+        // 방 목록 업데이트
         const updatedRooms = [updatedRoom, ...rooms];
         setRooms(updatedRooms);
         setFilteredPosts(updatedRooms);
-        setLastRoomNum(newRoomNum);
-        localStorage.setItem(`lastRoomNum_${game}`, newRoomNum.toString());
+
         setCreateRoomModalOpen(false);
     };
+
 
 
     useEffect(() => {
@@ -319,6 +337,7 @@ const RoomPage = () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [handleClickOutside]);
+
 
 
 
@@ -452,7 +471,6 @@ const RoomPage = () => {
                     onClose={handleCloseCreateRoomModal}
                     onRoomCreated={handleRoomCreated}
                     game={game}
-                    lastRoomNum={lastRoomNum}
                 />
             )}
             {passwordModalOpen && (
