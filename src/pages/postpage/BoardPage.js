@@ -10,63 +10,8 @@ import axios from 'axios';
 import { FaClipboard, FaHome, FaSignOutAlt, FaUser, FaUserFriends } from "react-icons/fa";
 import ProfileModal from "../roompage/modal/ProfileModal";
 import { AiOutlineUserAdd } from "react-icons/ai";
-
-const FriendSearchModal = ({ onClose }) => {
-    const [searchInput, setSearchInput] = useState('');
-    const [searchResults, setSearchResults] = useState([]);
-    const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-    const userId = userInfo.id;
-
-    const handleSearch = async () => {
-        // Placeholder for search logic
-        // Implement the search functionality as needed
-    };
-
-    const handleSendFriendRequest = async (receiverId) => {
-        try {
-            const response = await fetch('https://botox-chat.site/api/friendship/request', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    senderId: userId,
-                    receiverId: receiverId
-                })
-            });
-            const data = await response.json();
-            alert(data.message);
-        } catch (error) {
-            console.error('Error sending friend request:', error);
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-                <h2 className="text-xl mb-4">친구 추가</h2>
-                <input
-                    type="text"
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder="닉네임을 입력하세요"
-                    className="w-full p-2 border rounded mb-4"
-                />
-                <button onClick={handleSearch} className="w-full bg-blue-500 text-white p-2 rounded mb-4">검색</button>
-                <div>
-                    {searchResults.map((result) => (
-                        <div key={result.id} className="flex items-center justify-between mb-2">
-                            <span>{result.nickname}</span>
-                            <button onClick={() => handleSendFriendRequest(result.id)} className="bg-green-500 text-white p-2 rounded">추가</button>
-                        </div>
-                    ))}
-                </div>
-                <button onClick={onClose} className="w-full bg-gray-500 text-white p-2 rounded">닫기</button>
-            </div>
-        </div>
-    );
-};
+import FriendSearchModal from "../roompage/modal/FriendSearchModal";
+import FriendRequestList from "../roompage/modal/FriendRequestList";
 
 const GameCard = ({ post, onClick }) => (
     <div className="bg-customBoardBg rounded-lg p-4 mb-4 shadow-lg m-auto w-8/12 cursor-pointer"
@@ -100,6 +45,7 @@ const BoardPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filteredPosts, setFilteredPosts] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
+    const [friendList, setFriendList] = useState([]);
     const postsPerPage = 5;
     const modalBackground = useRef(null);
     const friendsModalBackground = useRef(null);
@@ -130,9 +76,46 @@ const BoardPage = () => {
         }
     };
 
+    const fetchFriendList = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+
+            if (!token || !userInfo || !userInfo.id) {
+                console.error('User information or token is missing');
+                return;
+            }
+
+            const userId = userInfo.id;
+
+            const response = await fetch(`https://botox-chat.site/api/friendship/${userId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch friend list');
+            }
+
+            const data = await response.json();
+            if (data && data.data) {
+                setFriendList(data.data);
+            } else {
+                setFriendList([]);
+            }
+        } catch (error) {
+            console.error('Error fetching friend list:', error);
+            setFriendList([]);
+        }
+    };
+
     useEffect(() => {
         fetchPosts();
         fetchUserData();
+        fetchFriendList();
     }, []);
 
     const fetchUserData = async () => {
@@ -168,6 +151,49 @@ const BoardPage = () => {
                 post.title.toLowerCase().includes(searchTerm.toLowerCase())
             );
             setFilteredPosts(filtered);
+        }
+    };
+
+    const handleAcceptRequest = async (requestId) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`https://botox-chat.site/api/friendship/requests/${requestId}/accept`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                alert('친구 요청이 수락되었습니다.');
+                fetchFriendList(); // 수락 후 친구 목록 갱신
+            } else {
+                console.error('Failed to accept friend request');
+            }
+        } catch (error) {
+            console.error('Error accepting friend request:', error);
+        }
+    };
+
+    const handleDeclineRequest = async (requestId) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`https://botox-chat.site/api/friendship/requests/${requestId}/decline`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                alert('친구 요청이 거절되었습니다.');
+                fetchFriendList(); // 거절 후 친구 목록 갱신
+            } else {
+                console.error('Failed to decline friend request');
+            }
+        } catch (error) {
+            console.error('Error declining friend request:', error);
         }
     };
 
@@ -294,28 +320,34 @@ const BoardPage = () => {
                         </div>
                     )}
                     {friendsModalOpen && (
-                        <div className="fixed top-10 left-10 flex justify-center items-start z-1">
-                            <div ref={friendsModalBackground} className="bg-customFriendBg p-4 w-96 h-80 rounded-xl shadow-lg">
+                        <div className="fixed top-10 left-10 flex justify-center items-start z-10">
+                            <div ref={friendsModalBackground} className="bg-customFriendBg p-4 w-96 h-80 rounded-xl shadow-lg overflow-y-auto">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-white text-xl mb-4">친구 목록</h2>
-                                    <AiOutlineUserAdd className="w-10 h-10 mb-2" onClick={() => setShowFriendSearchModal(true)}/>
+                                    <AiOutlineUserAdd className="w-10 h-10 mb-2 cursor-pointer" onClick={() => setShowFriendSearchModal(true)}/>
                                 </div>
                                 <hr className="mb-4"/>
+                                <FriendRequestList
+                                    userId={userData?.id}
+                                    onAccept={handleAcceptRequest}
+                                    onDecline={handleDeclineRequest}
+                                />
                                 <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center">
-                                            <div className="w-8 h-8 bg-gray-500 rounded-full mr-2"></div>
-                                            <span className="text-white">인간성기삽니다123</span>
-                                        </div>
-                                        <button className="bg-green-500 text-white px-2 py-1 rounded">참여</button>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center">
-                                            <div className="w-8 h-8 bg-gray-500 rounded-full mr-2"></div>
-                                            <span className="text-white">와일드 맨들 9999</span>
-                                        </div>
-                                        <button className="bg-blue-500 text-white px-2 py-1 rounded">로비</button>
-                                    </div>
+                                    {friendList && friendList.length > 0 ? (
+                                        friendList.map((friend) => (
+                                            <div key={friend.requestId} className="flex items-center justify-between">
+                                                <div className="flex items-center">
+                                                    <div className="w-8 h-8 bg-gray-500 rounded-full mr-2"></div>
+                                                    <span className="text-white">
+                                    {friend.senderId === userData?.id ? friend.receiverId : friend.senderId}
+                                </span>
+                                                </div>
+                                                <span className="text-white">{friend.status}</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-white">친구 목록이 비어 있습니다.</p>
+                                    )}
                                 </div>
                             </div>
                         </div>

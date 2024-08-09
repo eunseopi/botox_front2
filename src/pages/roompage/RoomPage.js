@@ -9,62 +9,8 @@ import PasswordModal from './modal/PassWordModal'; // PasswordModal 임포트 �
 import { AiOutlineUserAdd } from "react-icons/ai";
 import {FaClipboard, FaHome, FaLock, FaSignOutAlt, FaUser, FaUserFriends} from 'react-icons/fa';
 import ProfileModal from "./modal/ProfileModal";
-
-const FriendSearchModal = ({ onClose }) => {
-    const [searchInput, setSearchInput] = useState('');
-    const [searchResults, setSearchResults] = useState([]);
-
-    const handleSearch = async () => {
-        // 검색 로직 나중에 추가.
-        // 예를 들어, API를 호출하여 검색 결과를 가져오기
-        // setSearchResults(apiResponse);
-    };
-
-    const handleSendFriendRequest = async (receiverId) => {
-        try {
-            const response = await fetch('/api/friendship/request', {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer <your-token>',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    senderId: 1, // 실제 사용자 ID로 대체해야 합니다
-                    receiverId: receiverId
-                })
-            });
-            const data = await response.json();
-            alert(data.message);
-        } catch (error) {
-            console.error('Error sending friend request:', error);
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-                <h2 className="text-xl mb-4">친구 추가</h2>
-                <input
-                    type="text"
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder="닉네임을 입력하세요"
-                    className="w-full p-2 border rounded mb-4"
-                />
-                <button onClick={handleSearch} className="w-full bg-blue-500 text-white p-2 rounded mb-4">검색</button>
-                <div>
-                    {searchResults.map((result) => (
-                        <div key={result.id} className="flex items-center justify-between mb-2">
-                            <span>{result.nickname}</span>
-                            <button onClick={() => handleSendFriendRequest(result.id)} className="bg-green-500 text-white p-2 rounded">추가</button>
-                        </div>
-                    ))}
-                </div>
-                <button onClick={onClose} className="w-full bg-gray-500 text-white p-2 rounded">닫기</button>
-            </div>
-        </div>
-    );
-};
+import FriendSearchModal from "./modal/FriendSearchModal";
+import profile from "../../images/profile.jpg";
 
 
 const GameCard = ({ room, onClick }) => (
@@ -103,8 +49,6 @@ const RoomPage = () => {
     const [selectedRoom, setSelectedRoom] = useState(null); // 선택된 방 상태 추가
     // const [friendSearchInput, setFriendSearchInput] = useState('');
     // const [friendSearchResults, setFriendSearchResults] = useState([]);
-    const [nickname, setNickname] = useState('');
-    const [profileImage, setProfileImage] = useState(null);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [showFriendSearchModal, setShowFriendSearchModal] = useState(false);
     const [userData, setUserData] = useState(null);
@@ -113,7 +57,7 @@ const RoomPage = () => {
     const { game } = useParams();  // URL 파라미터에서 game 읽기
     const [currentPage, setCurrentPage] = useState(1);
     const [filteredPosts, setFilteredPosts] = useState([]);
-    const [lastRoomNum, setLastRoomNum] = useState(0);
+    const [friendList, setFriendList] = useState([]);
     const postsPerPage = 5;
     const navigate = useNavigate();
     const location = useLocation();
@@ -144,7 +88,44 @@ const RoomPage = () => {
 
     useEffect(() => {
         fetchUserData();
+        fetchFriendList();
     }, []);
+
+    const fetchFriendList = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+
+            if (!token || !userInfo || !userInfo.id) {
+                console.error('User information or token is missing');
+                return;
+            }
+
+            const userId = userInfo.id;
+
+            const response = await fetch(`https://botox-chat.site/api/friendship/${userId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch friend list');
+            }
+
+            const data = await response.json();
+            if (data && data.data) {
+                setFriendList(data.data);
+            } else {
+                setFriendList([]);
+            }
+        } catch (error) {
+            console.error('Error fetching friend list:', error);
+            setFriendList([]);
+        }
+    };
 
     const fetchUserData = async () => {
         const userId = JSON.parse(localStorage.getItem('userInfo')).username;
@@ -274,8 +255,35 @@ const RoomPage = () => {
         }
     };
 
-    const enterRoom = (room) => {
-        navigate(`/rooms/${room.roomNum}`, { state: { roomInfo: room } });
+    const enterRoom = async (room) => {
+        try {
+            const token = localStorage.getItem('token');
+            const userId = JSON.parse(localStorage.getItem('userInfo')).id; // 사용자 ID 가져오기
+
+            const response = await fetch(`https://botox-chat.site/api/rooms/${room.roomNum}/join`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ userId: userId })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to join room');
+            }
+
+            const result = await response.json();
+            if (result.code === 'NO_CONTENT') {
+                // 방 입장 성공
+                navigate(`/rooms/${room.roomNum}`, { state: { roomInfo: room } });
+            } else {
+                throw new Error(result.message || 'Failed to join room');
+            }
+        } catch (error) {
+            console.error('Error joining room:', error);
+            alert('방 입장에 실패했습니다. 다시 시도해주세요.');
+        }
     };
 
     const handlePasswordConfirm = (enteredPassword) => {
@@ -349,10 +357,10 @@ const RoomPage = () => {
                         <img src={menuImage} alt="Menu" className="w-10 h-10 p-2 mr-2"/>
                     </button>
                     {modalOpen && userData && (
-                        <div className="fixed top-10 left-10 flex justify-center items-start">
+                        <div className="fixed top-10 left-10 flex justify-center items-start z-10">
                             <div ref={modalBackground} className="bg-white p-4 w-64 rounded-xl shadow-lg">
                                 <div className="flex items-center mb-4">
-                                    <img src={userData.profilePicUrl} alt="Profile" className="w-16 h-16 rounded-full mr-4"/>
+                                    <img src={userData.userProfilePic || profile} alt="Profile" className="w-16 h-16 rounded-full mr-4"/>
                                     <div>
                                         <p className="text-xl font-semibold">{userData.nickname}</p>
                                         <p className="text-sm text-gray-500">{userData.status}</p>
@@ -379,28 +387,29 @@ const RoomPage = () => {
                         </div>
                     )}
                     {friendsModalOpen && (
-                        <div className="fixed top-10 left-10 flex justify-center items-start z-1">
-                            <div ref={friendsModalBackground} className="bg-customFriendBg p-4 w-96 h-80 rounded-xl shadow-lg">
+                        <div className="fixed top-10 left-10 flex justify-center items-start z-10">
+                            <div ref={friendsModalBackground} className="bg-customFriendBg p-4 w-96 h-80 rounded-xl shadow-lg overflow-y-auto">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-white text-xl mb-4">친구 목록</h2>
-                                    <AiOutlineUserAdd className="w-10 h-10 mb-2" onClick={() => setShowFriendSearchModal(true)}/>
+                                    <AiOutlineUserAdd className="w-10 h-10 mb-2 cursor-pointer" onClick={() => setShowFriendSearchModal(true)}/>
                                 </div>
                                 <hr className="mb-4"/>
                                 <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center">
-                                            <div className="w-8 h-8 bg-gray-500 rounded-full mr-2"></div>
-                                            <span className="text-white">인간성기삽니다123</span>
-                                        </div>
-                                        <button className="bg-green-500 text-white px-2 py-1 rounded">참여</button>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center">
-                                            <div className="w-8 h-8 bg-gray-500 rounded-full mr-2"></div>
-                                            <span className="text-white">와일드 맨들 9999</span>
-                                        </div>
-                                        <button className="bg-blue-500 text-white px-2 py-1 rounded">로비</button>
-                                    </div>
+                                    {friendList && friendList.length > 0 ? (
+                                        friendList.map((friend) => (
+                                            <div key={friend.requestId} className="flex items-center justify-between">
+                                                <div className="flex items-center">
+                                                    <div className="w-8 h-8 bg-gray-500 rounded-full mr-2"></div>
+                                                    <span className="text-white">
+                                    {friend.senderId === userData?.id ? friend.receiverId : friend.senderId}
+                                </span>
+                                                </div>
+                                                <span className="text-white">{friend.status}</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-white">친구 목록이 비어 있습니다.</p>
+                                    )}
                                 </div>
                             </div>
                         </div>
