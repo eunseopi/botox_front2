@@ -1,96 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { FaArrowLeft, FaUser } from 'react-icons/fa';
-import { w3cwebsocket as W3CWebSocket } from 'websocket';
 import title from '../../../images/title.png';
-
-const RoomEditModal = ({ isOpen, onClose, onSave, currentRoomInfo }) => {
-    const [roomTitle, setRoomTitle] = useState(currentRoomInfo.roomTitle);
-    const [roomType, setRoomType] = useState(currentRoomInfo.roomType);
-    const [roomPassword, setRoomPassword] = useState(currentRoomInfo.roomPassword);
-    const [roomCapacityLimit, setRoomCapacityLimit] = useState(currentRoomInfo.roomCapacityLimit);
-
-
-    useEffect(() => {
-        if (currentRoomInfo) {
-            setRoomTitle(currentRoomInfo.roomTitle);
-            setRoomType(currentRoomInfo.roomType);
-            setRoomPassword(currentRoomInfo.roomPassword);
-            setRoomCapacityLimit(currentRoomInfo.roomCapacityLimit);
-        }
-    }, [currentRoomInfo]);
-
-
-    const handleSave = () => {
-        const updatedRoomInfo = {
-            roomTitle,
-            roomType,
-            roomPassword,
-            roomCapacityLimit
-        };
-        onSave(updatedRoomInfo);
-        onClose();
-    };
-
-    return (
-        <>
-            {isOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-                    <div className="bg-customFriendBg p-6 rounded-lg w-96">
-                        <h2 className="text-2xl text-white font-bold mb-4">방 정보 수정</h2>
-                        <input
-                            type="text"
-                            value={roomTitle}
-                            onChange={(e) => setRoomTitle(e.target.value)}
-                            placeholder="방 제목"
-                            className="w-full text-white bg-customMainBg p-2 mb-2 border rounded"
-                        />
-                        <select
-                            value={roomType}
-                            onChange={(e) => setRoomType(e.target.value)}
-                            className="w-full text-white bg-customMainBg p-2 mb-2 border rounded"
-                        >
-                            <option value="VOICE">음성</option>
-                            <option value="TEXT">텍스트</option>
-                        </select>
-                        <input
-                            type="password"
-                            value={roomPassword}
-                            onChange={(e) => setRoomPassword(e.target.value)}
-                            placeholder="방 비밀번호 (선택사항)"
-                            className="w-full text-white bg-customMainBg p-2 mb-2 border rounded"
-                        />
-                        <input
-                            type="number"
-                            value={roomCapacityLimit}
-                            onChange={(e) => setRoomCapacityLimit(e.target.value)}
-                            placeholder="최대 인원"
-                            className="w-full text-white bg-customMainBg p-2 mb-2 border rounded"
-                            min="2"
-                        />
-                        <div className="flex justify-end">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="px-4 py-2 bg-gray-300 rounded mr-2"
-                            >
-                                취소
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleSave}
-                                className="px-4 py-2 bg-customIdBg text-white rounded"
-                            >
-                                저장
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </>
-    );
-};
-
+import { Stomp } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
+import RoomEditModal from "../modal/RoomEditModal";
 
 const TextChat = () => {
     const [messages, setMessages] = useState([]);
@@ -99,15 +13,16 @@ const TextChat = () => {
     const [userData, setUserData] = useState(null);
     const [newNickname, setNewNickname] = useState("");
     const [RoomInfo, setRoomInfo] = useState(null);
+    const [stompClient, setStompClient] = useState(null);
     const chatContainerRef = useRef(null);
     const textareaRef = useRef(null);
+    const [isConnected, setIsConnected] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
-    const roomInfo = location.state?.roomInfo || {};
+    const roomInfo = location.state?.roomInfo || {}; // Ensure roomInfo is an object
     const [currentUser, setCurrentUser] = useState(null);
     const [inUsers, setInUsers] = useState([]);
-    const {roomNum} = useParams();
-    const WS_SERVER_URL = 'wss://botox-chat.site/ws';
+    const { roomNum } = useParams();
     const [isRoomEditModalOpen, setIsRoomEditModalOpen] = useState(false);
     const [editRoomInfo, setEditRoomInfo] = useState({
         roomTitle: "",
@@ -153,43 +68,36 @@ const TextChat = () => {
     };
 
     useEffect(() => {
+        const socket = new WebSocket('wss://botox-chat.site/ws'); // WebSocket 서버 URL을 확인하세요.
+        const stompClient = Stomp.over(socket);
 
-        const textClient = new W3CWebSocket(WS_SERVER_URL);
-
-        textClient.onopen = () => {
-            console.log('텍스트 WebSocket 클라이언트 연결됨');
-            setTextWsClient(textClient);
-            // 연결 후 방 정보 전송
-            textClient.send(JSON.stringify({
-                type: 'join',
-                roomNum: roomInfo.roomNum
-            }));
-        };
-
-        textClient.onmessage = (message) => {
-            const data = JSON.parse(message.data.toString());
-            handleTextMessage(data);
-        };
-
-        textClient.onclose = () => {
-            console.log('텍스트 WebSocket 클라이언트 연결 종료');
-            setTextWsClient(null);
-        };
-
-        textClient.onerror = (error) => {
-            console.error('텍스트 WebSocket 오류:', error);
-        };
+        stompClient.connect({}, (frame) => {
+            console.log('Connected:', frame);
+            stompClient.subscribe(`/sub/chatroom/${roomNum}`, (message) => {
+                console.log('Received message:', message.body); // 수신된 메시지 로그 추가
+                const newMessage = JSON.parse(message.body);
+                setMessages((prevMessages) => [...prevMessages, newMessage]);
+            });
+            setStompClient(stompClient);
+            setIsConnected(true);
+        }, (error) => {
+            console.error('Error connecting to WebSocket:', error);
+        });
 
         return () => {
-            textClient.close();
+            if (stompClient) {
+                stompClient.disconnect();
+                setIsConnected(false);
+            }
         };
-    }, [WS_SERVER_URL]);
+    }, [roomNum]);
 
     useEffect(() => {
         const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-        setCurrentUser(userInfo);
 
-        if (userInfo) {
+        if (userInfo && roomInfo && roomInfo.roomNum) {
+            setCurrentUser(userInfo);
+
             const initialUsers = [
                 { id: userInfo.id, nickname: userInfo.nickname }
             ];
@@ -201,7 +109,8 @@ const TextChat = () => {
 
             return () => leaveRoom(roomInfo.roomNum, userInfo.id);
         }
-    }, [roomInfo.roomNum]);
+    }, [roomInfo]);
+
 
     useEffect(() => {
         if (chatContainerRef.current) {
@@ -225,7 +134,7 @@ const TextChat = () => {
     useEffect(() => {
         if (roomInfo && currentUser) {
             // participants가 정의되어 있는지 확인
-            const participants = roomInfo.participants || [];
+            const participants = roomInfo.participants || []; // Default to an empty array if participants is undefined
 
             // 참가자 목록 업데이트
             const updatedUsers = participants.map(user => ({
@@ -247,26 +156,22 @@ const TextChat = () => {
         }
     }, [currentUser, roomInfo, userData]);
 
-    const handleTextMessage = (data) => {
-        if (data.type === 'message') {
-            setMessages(prevMessages => [...prevMessages, { isMyMessage: false, content: `${data.nickName}: ${data.message}` }]);
-        }
-    };
-
     const handleSendMessage = () => {
-        if (textareaRef.current) {
-            const message = textareaRef.current.value.trim();
-            if (message !== "" && textWsClient?.readyState === WebSocket.OPEN) {
-                textWsClient.send(JSON.stringify({
-                    type: 'message',
-                    roomNum: roomInfo.roomNum,
-                    message: message
-                }));
-                setMessages(prevMessages => [...prevMessages, { isMyMessage: true, content: message }]);
-                textareaRef.current.value = "";
-            } else {
-                console.error('텍스트 WebSocket이 열려있지 않습니다');
-            }
+        console.log('STOMP Client:', stompClient);
+        console.log('STOMP Client Connected:', stompClient && stompClient.connected);
+
+        if (stompClient && stompClient.connected && newMessage.trim()) {
+            const message = {
+                chatRoomId: roomNum,
+                name: userData.name || '익명',
+                message: newMessage,
+                timestamp: new Date().toISOString()
+            };
+            console.log('Sending message:', message); // 로그 추가
+            stompClient.send('/pub/message', {}, JSON.stringify(message));
+            setNewMessage('');
+        } else {
+            console.error('STOMP 클라이언트가 연결되지 않았거나 메시지가 비어 있습니다.');
         }
     };
 
@@ -323,7 +228,6 @@ const TextChat = () => {
             if (data.code === 'NO_CONTENT') {
                 console.log('방을 성공적으로 나갔습니다.');
                 // 방을 나간 후 상태를 업데이트합니다.
-                // setRoomInfo(null);
                 setMessages([]);
                 setInUsers([]);
             } else {
@@ -337,8 +241,6 @@ const TextChat = () => {
     const handleExit = async () => {
         if (currentUser) {
             await leaveRoom(roomInfo.roomNum, currentUser.id);
-            // 방이 삭제된 경우를 대비하여 상태를 리셋합니다.
-            // setRoomInfo(null);
             setMessages([]);
             setInUsers([]);
         }
@@ -360,25 +262,24 @@ const TextChat = () => {
                 body: JSON.stringify(updatedRoomInfo)
             });
 
-            if(response.ok) {
+            if (response.ok) {
                 const data = await response.json();
                 if (data.code === "OK") {
                     console.log("방 정보 업데이트 성공:", data.data);
-                    const updatedRoom = data.data
+                    const updatedRoom = data.data;
                     setEditRoomInfo(updatedRoom); // 업데이트된 방 정보를 상태에 반영
                     localStorage.setItem(`room_${updatedRoom.roomNum}`, JSON.stringify(updatedRoom));
                 } else {
                     console.error('방 수정 실패:', data.message);
                 }
-            }else {
-                    const errorData = await response.json();
-                    console.error('방 수정 API 호출 실패:', errorData.message);
-                }
-            } catch (error) {
-                console.error('방 수정 중 오류 발생:', error);
+            } else {
+                const errorData = await response.json();
+                console.error('방 수정 API 호출 실패:', errorData.message);
             }
+        } catch (error) {
+            console.error('방 수정 중 오류 발생:', error);
+        }
     };
-
 
     const handleOpenRoomEditModal = () => {
         setIsRoomEditModalOpen(true);
@@ -388,7 +289,6 @@ const TextChat = () => {
         handleRoomUpdate(updatedRoomInfo);
         setIsRoomEditModalOpen(false); // 모달 닫기
     };
-
 
     return (
         <div className="bg-customMainBg text-white h-screen flex flex-col">
@@ -427,10 +327,14 @@ const TextChat = () => {
                             className="flex-grow bg-customChatBg text-white rounded-2xl p-2 mr-2"
                             placeholder="메시지를 입력하세요..."
                             rows="1"
+                            onChange={(e) => setNewMessage(e.target.value)}
                             onKeyPress={handleKeyPress}
                         />
                         <button
-                            onClick={handleSendMessage}
+                            onClick={() => {
+                                console.log('버튼 클릭됨');
+                                handleSendMessage();
+                            }}
                             className="bg-yellow-500 text-black px-4 w-20 rounded-2xl"
                         >
                             전송
@@ -442,11 +346,11 @@ const TextChat = () => {
                             방 정보 수정
                         </button>
                         <RoomEditModal
-                        isOpen={isRoomEditModalOpen}
-                        onClose={() => setIsRoomEditModalOpen(false)}
-                        onSave={handleSaveRoomInfo}
-                        currentRoomInfo={roomInfo}
-                    />
+                            isOpen={isRoomEditModalOpen}
+                            onClose={() => setIsRoomEditModalOpen(false)}
+                            onSave={handleSaveRoomInfo}
+                            currentRoomInfo={roomInfo}
+                        />
                     </div>
                 </div>
 
