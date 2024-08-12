@@ -91,6 +91,17 @@ const RoomPage = () => {
         fetchFriendList();
     }, []);
 
+    useEffect(() => {
+        if (friendsModalOpen) {
+            console.log("About to fetch friend list"); // 추가된 로그
+            fetchFriendList();
+        }
+    }, [friendsModalOpen]);
+
+    useEffect(() => {
+        console.log('Friend list:', friendList); // 렌더링 시 상태 로그
+    }, [friendList]);
+
     const fetchFriendList = async () => {
         try {
             const token = localStorage.getItem('token');
@@ -106,7 +117,7 @@ const RoomPage = () => {
             const response = await fetch(`https://botox-chat.site/api/friendship/${userId}`, {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
                     'Content-Type': 'application/json'
                 },
             });
@@ -116,10 +127,16 @@ const RoomPage = () => {
             }
 
             const data = await response.json();
-            if (data && data.data) {
-                setFriendList(data.data);
+            console.log('Friend list data:', data);
+            // data가 배열 형태인 경우
+            if (Array.isArray(data)) {
+                // 셀프 추가 방지 및 수락된 친구만 필터링
+                const filteredData = data.filter(friend =>
+                    friend.receiverId === userId && friend.status === 'ACCEPTED'
+                );
+                setFriendList(filteredData); // 상태 업데이트
             } else {
-                setFriendList([]);
+                setFriendList([]); // 빈 배열로 초기화
             }
         } catch (error) {
             console.error('Error fetching friend list:', error);
@@ -388,10 +405,12 @@ const RoomPage = () => {
                     )}
                     {friendsModalOpen && (
                         <div className="fixed top-10 left-10 flex justify-center items-start z-10">
-                            <div ref={friendsModalBackground} className="bg-customFriendBg p-4 w-96 h-80 rounded-xl shadow-lg overflow-y-auto">
+                            <div ref={friendsModalBackground}
+                                 className="bg-customFriendBg p-4 w-96 h-80 rounded-xl shadow-lg overflow-y-auto">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-white text-xl mb-4">친구 목록</h2>
-                                    <AiOutlineUserAdd className="w-10 h-10 mb-2 cursor-pointer" onClick={() => setShowFriendSearchModal(true)}/>
+                                    <AiOutlineUserAdd className="w-10 h-10 mb-2 cursor-pointer"
+                                                      onClick={() => setShowFriendSearchModal(true)}/>
                                 </div>
                                 <hr className="mb-4"/>
                                 <div className="space-y-2">
@@ -400,11 +419,10 @@ const RoomPage = () => {
                                             <div key={friend.requestId} className="flex items-center justify-between">
                                                 <div className="flex items-center">
                                                     <div className="w-8 h-8 bg-gray-500 rounded-full mr-2"></div>
-                                                    <span className="text-white">
-                                    {friend.senderId === userData?.id ? friend.receiverId : friend.senderId}
-                                </span>
+                                                    <span className="flex justify-between text-white">
+                                                        {friend.senderId}
+                                                    </span>
                                                 </div>
-                                                <span className="text-white">{friend.status}</span>
                                             </div>
                                         ))
                                     ) : (

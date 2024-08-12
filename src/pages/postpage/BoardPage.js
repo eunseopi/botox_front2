@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import menuImage from "../../images/menu.png";
-import roomIcon from '../../images/roomIcon.png';
 import egg from '../../images/egg.png';
-import good from '../../images/good.jpeg';
 import profile from '../../images/profile.jpg';
 import search from "../../images/search.png";
 import axios from 'axios';
@@ -11,7 +9,6 @@ import { FaClipboard, FaHome, FaSignOutAlt, FaUser, FaUserFriends } from "react-
 import ProfileModal from "../roompage/modal/ProfileModal";
 import { AiOutlineUserAdd } from "react-icons/ai";
 import FriendSearchModal from "../roompage/modal/FriendSearchModal";
-import FriendRequestList from "../roompage/modal/FriendRequestList";
 
 const GameCard = ({ post, onClick }) => (
     <div className="bg-customBoardBg rounded-lg p-4 mb-4 shadow-lg m-auto w-8/12 cursor-pointer"
@@ -51,6 +48,7 @@ const BoardPage = () => {
     const friendsModalBackground = useRef(null);
     const navigate = useNavigate();
     const location = useLocation();
+
 
     const fetchPosts = async () => {
         setIsLoading(true);
@@ -101,10 +99,16 @@ const BoardPage = () => {
             }
 
             const data = await response.json();
-            if (data && data.data) {
-                setFriendList(data.data);
+            console.log('Friend list data:', data);
+            // data가 배열 형태인 경우
+            if (Array.isArray(data)) {
+                // 셀프 추가 방지 및 수락된 친구만 필터링
+                const filteredData = data.filter(friend =>
+                    friend.receiverId === userId && friend.status === 'ACCEPTED'
+                );
+                setFriendList(filteredData); // 상태 업데이트
             } else {
-                setFriendList([]);
+                setFriendList([]); // 빈 배열로 초기화
             }
         } catch (error) {
             console.error('Error fetching friend list:', error);
@@ -115,8 +119,20 @@ const BoardPage = () => {
     useEffect(() => {
         fetchPosts();
         fetchUserData();
-        fetchFriendList();
     }, []);
+
+    useEffect(() => {
+        if (friendsModalOpen) {
+            console.log("About to fetch friend list"); // 추가된 로그
+            fetchFriendList();
+        }
+    }, [friendsModalOpen]);
+
+    useEffect(() => {
+        console.log('Friend list:', friendList); // 렌더링 시 상태 로그
+    }, [friendList]);
+
+
 
     const fetchUserData = async () => {
         const userId = JSON.parse(localStorage.getItem('userInfo')).username;
@@ -151,49 +167,6 @@ const BoardPage = () => {
                 post.title.toLowerCase().includes(searchTerm.toLowerCase())
             );
             setFilteredPosts(filtered);
-        }
-    };
-
-    const handleAcceptRequest = async (requestId) => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`https://botox-chat.site/api/friendship/requests/${requestId}/accept`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                alert('친구 요청이 수락되었습니다.');
-                fetchFriendList(); // 수락 후 친구 목록 갱신
-            } else {
-                console.error('Failed to accept friend request');
-            }
-        } catch (error) {
-            console.error('Error accepting friend request:', error);
-        }
-    };
-
-    const handleDeclineRequest = async (requestId) => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`https://botox-chat.site/api/friendship/requests/${requestId}/decline`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (response.ok) {
-                alert('친구 요청이 거절되었습니다.');
-                fetchFriendList(); // 거절 후 친구 목록 갱신
-            } else {
-                console.error('Failed to decline friend request');
-            }
-        } catch (error) {
-            console.error('Error declining friend request:', error);
         }
     };
 
@@ -282,6 +255,7 @@ const BoardPage = () => {
         };
     }, [handleClickOutside]);
 
+
     return (
         <div className="flex flex-col h-full">
             <div className="w-full bg-customTopNav h-10">
@@ -327,22 +301,16 @@ const BoardPage = () => {
                                     <AiOutlineUserAdd className="w-10 h-10 mb-2 cursor-pointer" onClick={() => setShowFriendSearchModal(true)}/>
                                 </div>
                                 <hr className="mb-4"/>
-                                <FriendRequestList
-                                    userId={userData?.id}
-                                    onAccept={handleAcceptRequest}
-                                    onDecline={handleDeclineRequest}
-                                />
                                 <div className="space-y-2">
                                     {friendList && friendList.length > 0 ? (
                                         friendList.map((friend) => (
                                             <div key={friend.requestId} className="flex items-center justify-between">
                                                 <div className="flex items-center">
                                                     <div className="w-8 h-8 bg-gray-500 rounded-full mr-2"></div>
-                                                    <span className="text-white">
-                                    {friend.senderId === userData?.id ? friend.receiverId : friend.senderId}
-                                </span>
+                                                    <span className="flex justify-between text-white">
+                                                        {friend.senderId}
+                                                    </span>
                                                 </div>
-                                                <span className="text-white">{friend.status}</span>
                                             </div>
                                         ))
                                     ) : (
@@ -419,7 +387,10 @@ const BoardPage = () => {
             </div>
             {showFriendSearchModal && (
                 <FriendSearchModal
-                    onClose={() => setShowFriendSearchModal(false)}
+                    onClose={() => {
+                        setShowFriendSearchModal(false);
+                        fetchFriendList();  // 친구 추가 후 목록 갱신
+                    }}
                 />
             )}
             {showProfileModal && (
