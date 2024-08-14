@@ -54,7 +54,7 @@ const BoardPage = () => {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('https://botox-chat.site/api/posts', {
+            const response = await axios.get('http://localhost:8080/api/posts', {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 }
@@ -86,7 +86,7 @@ const BoardPage = () => {
 
             const userId = userInfo.id;
 
-            const response = await fetch(`https://botox-chat.site/api/friendship/${userId}`, {
+            const response = await fetch(`http://localhost:8080/api/friendship/${userId}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -143,7 +143,7 @@ const BoardPage = () => {
         }
 
         try {
-            const response = await fetch(`https://botox-chat.site/api/users/${userId}`, {
+            const response = await fetch(`http://localhost:8080/api/users/${userId}`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
@@ -173,7 +173,7 @@ const BoardPage = () => {
     const handlePostClick = async (post) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`https://botox-chat.site/api/posts/${post.postId}`, {
+            const response = await axios.get(`http://localhost:8080/api/posts/${post.postId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 }

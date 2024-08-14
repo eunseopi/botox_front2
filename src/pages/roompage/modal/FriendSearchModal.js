@@ -17,7 +17,7 @@ const FriendSearchModal = ({ onClose }) => {
 
     const handleSendFriendRequest = async (senderId, receiverId) => {
         try {
-            const response = await fetch('https://botox-chat.site/api/friendship/request', {
+            const response = await fetch('http://localhost:8080/api/friendship/request', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -47,7 +47,7 @@ const FriendSearchModal = ({ onClose }) => {
 
     const fetchFriendRequests = async () => {
         try {
-            const response = await fetch(`https://botox-chat.site/api/friendship/requests/${currentUser.id}`, {
+            const response = await fetch(`http://localhost:8080/api/friendship/requests/${currentUser.id}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -68,7 +68,7 @@ const FriendSearchModal = ({ onClose }) => {
     const handleAcceptRequest = async (requestId) => {
         console.log('수락 버튼 클릭됨, requestId:', requestId);
         try {
-            const response = await fetch(`https://botox-chat.site/api/friendship/requests/${requestId}/accept`, {
+            const response = await fetch(`http://localhost:8080/api/friendship/requests/${requestId}/accept`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -90,7 +90,7 @@ const FriendSearchModal = ({ onClose }) => {
 
     const handleDeclineRequest = async (requestId) => {
         try {
-            const response = await fetch(`https://botox-chat.site/api/friendship/requests/${requestId}/decline`, {
+            const response = await fetch(`http://localhost:8080/api/friendship/requests/${requestId}/decline`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`

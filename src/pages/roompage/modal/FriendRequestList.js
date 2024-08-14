@@ -8,7 +8,7 @@ const FriendRequestList = ({ userId, onAccept, onDecline}) => {
     useEffect(() => {
         const fetchFriendRequests = async () => {
             try {
-                const response = await fetch(`https://botox-chat.site/api/friendship/requests/${userId}`, {
+                const response = await fetch(`http://localhost:8080/api/friendship/requests/${userId}`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`

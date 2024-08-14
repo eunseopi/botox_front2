@@ -18,7 +18,7 @@ const Room = () => {
     const fetchRoomInfo = async (roomNum) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`https://botox-chat.site/api/rooms/${roomNum}`, {
+            const response = await fetch(`http://localhost:8080/api/rooms/${roomNum}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,

@@ -35,7 +35,7 @@ function WritePage() {
         };
 
         try {
-            const response = await axios.post(`https://botox-chat.site/api/posts?userId=${userId}`, postData, {
+            const response = await axios.post(`http://localhost:8080/api/posts?userId=${userId}`, postData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'

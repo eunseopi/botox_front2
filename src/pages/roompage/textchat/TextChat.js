@@ -50,7 +50,7 @@ const TextChat = () => {
         }
 
         try {
-            const response = await fetch(`https://botox-chat.site/api/users/${userId}`, {
+            const response = await fetch(`http://localhost:8080/api/users/${userId}`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 }
@@ -68,7 +68,7 @@ const TextChat = () => {
     };
 
     useEffect(() => {
-        const socket = new WebSocket('wss://botox-chat.site/ws'); // WebSocket 서버 URL을 확인하세요.
+        const socket = new WebSocket('ws://localhost:8080/ws'); // WebSocket 서버 URL을 확인하세요.
         const stompClient = Stomp.over(socket);
 
         stompClient.connect({}, (frame) => {
@@ -184,7 +184,7 @@ const TextChat = () => {
 
     const joinRoom = async (roomNum, userId) => {
         try {
-            const response = await fetch(`https://botox-chat.site/api/rooms/${roomNum}/join`, {
+            const response = await fetch(`http://localhost:8080/api/rooms/${roomNum}/join`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -215,7 +215,7 @@ const TextChat = () => {
 
     const leaveRoom = async (roomNum, userId) => {
         try {
-            const response = await fetch(`https://botox-chat.site/api/rooms/${roomNum}/leave`, {
+            const response = await fetch(`http://localhost:8080/api/rooms/${roomNum}/leave`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -253,7 +253,7 @@ const TextChat = () => {
 
     const handleRoomUpdate = async (updatedRoomInfo) => {
         try {
-            const response = await fetch(`https://botox-chat.site/api/rooms/${roomNum}`, {
+            const response = await fetch(`http://localhost:8080/api/rooms/${roomNum}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

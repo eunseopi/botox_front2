@@ -17,7 +17,7 @@ const SignUpPage = () => {
                 return;
             }
 
-            const response = await fetch('https://botox-chat.site/api/users/signup', {
+            const response = await fetch('http://localhost:8080/api/users/signup', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

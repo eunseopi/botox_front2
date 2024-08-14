@@ -10,7 +10,7 @@ const LoginPage = () => {
 
     const handleLogin = async () => {
         try {
-            const response = await fetch('https://botox-chat.site/api/users/login', {
+            const response = await fetch('http://localhost:8080/api/users/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -31,7 +31,7 @@ const LoginPage = () => {
                     localStorage.setItem('token', data.data.accessToken);
 
                     // 사용자 정보를 가져옵니다.
-                    const userResponse = await fetch(`https://botox-chat.site/api/users/${data.data.username}`, {
+                    const userResponse = await fetch(`http://localhost:8080/api/users/${data.data.username}`, {
                         headers: {
                             'Authorization': `Bearer ${data.data.accessToken}`,
                         },

@@ -114,7 +114,7 @@ const RoomPage = () => {
 
             const userId = userInfo.id;
 
-            const response = await fetch(`https://botox-chat.site/api/friendship/${userId}`, {
+            const response = await fetch(`http://localhost:8080/api/friendship/${userId}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -153,7 +153,7 @@ const RoomPage = () => {
         }
 
         try {
-            const response = await fetch(`https://botox-chat.site/api/users/${userId}`, {
+            const response = await fetch(`http://localhost:8080/api/users/${userId}`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
@@ -176,7 +176,7 @@ const RoomPage = () => {
                 throw new Error('No token found');
             }
 
-            const response = await fetch(`https://botox-chat.site/api/rooms/${game}`, {
+            const response = await fetch(`http://localhost:8080/api/rooms/${game}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -277,7 +277,7 @@ const RoomPage = () => {
             const token = localStorage.getItem('token');
             const userId = JSON.parse(localStorage.getItem('userInfo')).id; // 사용자 ID 가져오기
 
-            const response = await fetch(`https://botox-chat.site/api/rooms/${room.roomNum}/join`, {
+            const response = await fetch(`http://localhost:8080/api/rooms/${room.roomNum}/join`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

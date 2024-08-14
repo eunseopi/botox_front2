@@ -4,7 +4,7 @@ import { PiBellSimpleRingingFill } from "react-icons/pi";
 import axios from "axios";
 
 const updatePost = async (postId, updatedPost) => {
-    const response = await axios.put(`https://botox-chat.site/api/posts/${postId}`, updatedPost, {
+    const response = await axios.put(`http://localhost:8080/api/posts/${postId}`, updatedPost, {
         headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
@@ -14,7 +14,7 @@ const updatePost = async (postId, updatedPost) => {
 };
 
 const deletePost = async (postId) => {
-    const response = await axios.delete(`https://botox-chat.site/api/posts/${postId}`, {
+    const response = await axios.delete(`http://localhost:8080/api/posts/${postId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     });
     return response.data;
@@ -22,7 +22,7 @@ const deletePost = async (postId) => {
 
 const fetchCommentsByPostId = async (postId) => {
     try {
-        const response = await axios.get(`https://botox-chat.site/api/posts/${postId}/comments`, {
+        const response = await axios.get(`http://localhost:8080/api/posts/${postId}/comments`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
         return response.data;
@@ -33,7 +33,7 @@ const fetchCommentsByPostId = async (postId) => {
 };
 
 const reportComment = async (commentId, reportData) => {
-    const response = await axios.post(`https://botox-chat.site/api/comments/${commentId}/report`, reportData, {
+    const response = await axios.post(`http://localhost:8080/api/comments/${commentId}/report`, reportData, {
         headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
@@ -43,7 +43,7 @@ const reportComment = async (commentId, reportData) => {
 };
 
 const reportPost = async (postId, reportData) => {
-    const response = await axios.post(`https://botox-chat.site/api/posts/${postId}/report`, reportData, {
+    const response = await axios.post(`http://localhost:8080/api/posts/${postId}/report`, reportData, {
         headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
@@ -175,7 +175,7 @@ const PostDetailPage = () => {
         e.preventDefault();
         if (newComment.trim()) {
             try {
-                const response = await axios.post('https://botox-chat.site/api/comments', {
+                const response = await axios.post('http://localhost:8080/api/comments', {
                     authorId: currentUser?.id,
                     postId: post.postId,
                     commentContent: newComment,
@@ -204,7 +204,7 @@ const PostDetailPage = () => {
 
     const handleCommentDelete = async (commentId) => {
         try {
-            const response = await axios.delete(`https://botox-chat.site/api/comments/${commentId}`, {
+            const response = await axios.delete(`http://localhost:8080/api/comments/${commentId}`, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`
                 }
@@ -230,7 +230,7 @@ const PostDetailPage = () => {
 
     const handleLike = async (commentId) => {
         try {
-            const response = await axios.post(`https://botox-chat.site/api/comments/${commentId}/like`, {
+            const response = await axios.post(`http://localhost:8080/api/comments/${commentId}/like`, {
                 userId: currentUser.id
             }, {
                 headers: {

@@ -21,7 +21,7 @@ const ProfileModal = ({onClose}) => {
         }
 
         try {
-            const response = await fetch(`https://botox-chat.site/api/users/${userId}`, {
+            const response = await fetch(`http://localhost:8080/api/users/${userId}`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 }
