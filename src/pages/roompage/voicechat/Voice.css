@@ -1,0 +1,52 @@
+/* Container for the entire room */
+.room {
+    padding: 20px;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Room name styling */
+h2 {
+    text-align: left;
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+/* Container for user avatars */
+.users {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+}
+
+/* Individual user container */
+.user {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Circular avatar representing the user */
+.user-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-color: #ccc;
+    margin: 0 auto;
+    border: 5px solid transparent;
+    transition: border-color 0.3s ease;
+}
+
+/* Style for when a user is speaking */
+.user-avatar.speaking {
+    border-color: green;
+}
+
+/* User name styling */
+.user p {
+    margin-top: 10px;
+    font-size: 16px;
+    color: #555;
+}

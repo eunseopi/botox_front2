@@ -10,12 +10,13 @@ import RoomPage from "./pages/roompage/RoomPage";
 import VoiceChat from "./pages/roompage/voicechat/VoiceChat";
 import TextChat from "./pages/roompage/textchat/TextChat";
 import Room from "./pages/roompage/Room";
+import VoiceChatRoom from "./pages/roompage/voicechat/Socket";
 
 function App() {
   return (
     <Router>
         <Routes>
-            <Route path="/" element={<MainPage />} />
+            {/*<Route path="/" element={<MainPage />} />*/}
             <Route path="/board" element={<BoardPage />}/>
             <Route path="/login" element={<LoginPage />}/>
             <Route path="/signup" element={<SignUpPage />}/>
@@ -23,7 +24,8 @@ function App() {
             <Route path="/post/:id" element={<PostDetailPage/>}/>
             <Route path="/room/:game" element={<RoomPage/>}/>
             <Route path="/rooms/:roomNum" element={<Room />} />
-
+            {/*test 용 VoiceChatRoom endpoint 생성*/}
+            <Route path="/" element={<VoiceChatRoom />} />
         </Routes>
     </Router>
   );
