@@ -34,8 +34,8 @@ socket.on('enter_room', async ({ userId, roomNum }) => {
             const peerConnection = createPeerConnection(existingUserId, roomNum);
             peerConnections[`${roomNum}-${existingUserId}-${userId}`] = peerConnection;
 
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
+            const offer = (await peerConnection).createOffer();
+            (await peerConnection).setLocalDescription(offer);
 
             // (8) 생성된 offer를 새로운 사용자에게 전송
             console.log(`Sending offer from ${existingUserId} to ${userId}`);
@@ -76,7 +76,7 @@ socket.on('answer', async ({ from, answer, roomNum }) => {
 });
 
 // (14) RTCPeerConnection 생성 함수
-function createPeerConnection(userId, roomNum) {
+async function createPeerConnection(userId, roomNum) {
     console.log(`Creating new RTCPeerConnection for user ${userId} in room ${roomNum}`);
     const peerConnection = new RTCPeerConnection();
 
@@ -93,49 +93,46 @@ function createPeerConnection(userId, roomNum) {
         }
     };
 
-    // (16) 더미 오디오 스트림 생성 및 트랙 추가
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-    const destination = audioContext.createMediaStreamDestination();
-    oscillator.connect(destination);
-    oscillator.start();
+    try {
+        // (16) 실제 오디오 입력을 받아 트랙 추가
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => {
+            console.log(`Adding track to peer connection for ${userId}`);
+            peerConnection.addTrack(track, stream);
+        });
 
-    const stream = destination.stream;
-    stream.getTracks().forEach((track) => {
-        console.log(`Adding track to peer connection for ${userId}`);
-        peerConnection.addTrack(track, stream);
-    });
+        // (17) 상대방으로부터 트랙 수신 시 오디오 재생 및 소리 감지
+        peerConnection.ontrack = (event) => {
+            console.log(`Received remote track from ${userId}`);
+            const audioElement = new Audio();
+            audioElement.srcObject = event.streams[0];
+            audioElement.play();
 
-    // (17) 상대방으로부터 트랙 수신 시 오디오 재생 및 소리 감지
-    peerConnection.ontrack = (event) => {
-        console.log(`Received remote track from ${userId}`);
-        const audioElement = new Audio();
-        audioElement.srcObject = event.streams[0];
-        audioElement.play();
+            // (18) 소리 감지를 위한 AnalyserNode 생성
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const analyser = audioContext.createAnalyser();
+            const microphone = audioContext.createMediaStreamSource(event.streams[0]);
+            microphone.connect(analyser);
 
-        // (18) 소리 감지를 위한 AnalyserNode 생성
-        const analyser = audioContext.createAnalyser();
-        const microphone = audioContext.createMediaStreamSource(event.streams[0]);
-        microphone.connect(analyser);
-
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        const detectVolume = () => {
-            analyser.getByteFrequencyData(dataArray);
-            const volume = dataArray.reduce((acc, val) => acc + val, 0) / dataArray.length;
-            const userElement = document.getElementById(`user-${userId}`);
-            if (userElement) {
-                if (volume > 10) { // (19) 소리 감지 임계값
-                    userElement.classList.add('speaking');
-                } else {
-                    userElement.classList.remove('speaking');
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            const detectVolume = () => {
+                analyser.getByteFrequencyData(dataArray);
+                const volume = dataArray.reduce((acc, val) => acc + val, 0) / dataArray.length;
+                const userElement = document.getElementById(`user-${userId}`);
+                if (userElement) {
+                    if (volume > 10) { // (19) 소리 감지 임계값
+                        userElement.classList.add('speaking');
+                    } else {
+                        userElement.classList.remove('speaking');
+                    }
                 }
-            }
-            requestAnimationFrame(detectVolume);
+                requestAnimationFrame(detectVolume);
+            };
+            detectVolume();
         };
-        detectVolume();
-    };
+    } catch (error) {
+        console.error('Error accessing media devices.', error);
+    }
 
     return peerConnection;
 }
