@@ -40,10 +40,18 @@ socket.on('user_joined', async ({ userId, roomNum }) => {
     // (9) 방에 있는 모든 사용자들에 대해 offer 생성
     for (const existingUserId of rooms[roomNum].users) {
         if (existingUserId !== userId) {
+            const connectionKey = `${roomNum}-${existingUserId}-${userId}`;
+
+            // (9.1) 이미 연결이 존재하는지 확인
+            if (peerConnections[connectionKey]) {
+                console.log(`PeerConnection already exists for ${existingUserId} to ${userId}`);
+                continue; // 이미 연결이 존재하면, 새로 생성하지 않음
+            }
+
             console.log(`Creating offer from ${existingUserId} to ${userId} in room ${roomNum}`);
             const peerConnection = await createPeerConnection(userId, existingUserId, roomNum);
-            peerConnections[`${roomNum}-${existingUserId}-${userId}`] = peerConnection;
-            console.log(`(user_joined) create peerConnection ${roomNum}-${existingUserId}-${userId}`);
+            peerConnections[connectionKey] = peerConnection;
+            console.log(`(user_joined) create peerConnection ${connectionKey}`);
 
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
@@ -54,6 +62,7 @@ socket.on('user_joined', async ({ userId, roomNum }) => {
         }
     }
 });
+
 
 // (11) offer 수신 시 처리
 socket.on('offer', async ({ to, from, offer, roomNum }) => {
