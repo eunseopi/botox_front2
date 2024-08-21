@@ -16,11 +16,11 @@ const peerConnections = {};
 // (4) 사용자 미디어 스트림을 저장하는 객체 생성
 let localStream = null;
 
-// (5) 사용자가 방에 입장할 때 처리
+// (5) 클라이언트가 방에 입장했을 때 처리
 socket.on('enter_room', async ({ userId, roomNum }) => {
     console.log(`Socket Event - enter_room: User ${userId} entered room ${roomNum}`);
 
-    // (6) 해당 roomNum이 존재하지 않으면 초기화
+    // (6)해당 roomNum이 존재하지 않으면 초기화
     if (!rooms[roomNum]) {
         console.log(`Room ${roomNum} does not exist, creating new room.`);
         rooms[roomNum] = { users: [] };
@@ -31,32 +31,36 @@ socket.on('enter_room', async ({ userId, roomNum }) => {
         rooms[roomNum].users.push(userId);
         console.log(`Current users in room ${roomNum}:`, rooms[roomNum].users);
     }
+});
 
-    // (8) 기존 사용자들이 새로운 사용자에게 offer 생성 및 전송
+// (8) 기존 사용자가 새로 입장한 사용자에게 offer 생성 및 전송
+socket.on('user_joined', async ({ userId, roomNum }) => {
+    console.log(`Socket Event - user_joined: User ${userId} joined room ${roomNum}`);
+
+    // (9) 방에 있는 모든 사용자들에 대해 offer 생성
     for (const existingUserId of rooms[roomNum].users) {
         if (existingUserId !== userId) {
             console.log(`Creating offer from ${existingUserId} to ${userId} in room ${roomNum}`);
             const peerConnection = await createPeerConnection(userId, existingUserId, roomNum);
             peerConnections[`${roomNum}-${existingUserId}-${userId}`] = peerConnection;
-            console.log(`(enter_room)create peerConnection ${roomNum}-${existingUserId}-${userId}`)
+            console.log(`(user_joined) create peerConnection ${roomNum}-${existingUserId}-${userId}`);
 
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
 
-            // (9) 생성된 offer를 새로운 사용자에게 전송
+            // (10) 생성된 offer를 새로운 사용자에게 전송
             console.log(`Sending offer from ${existingUserId} to ${userId}`);
             socket.emit('offer', { to: userId, from: existingUserId, offer, roomNum });
         }
     }
 });
 
-// (10) offer 수신 시 처리
+// (11) offer 수신 시 처리
 socket.on('offer', async ({ to, from, offer, roomNum }) => {
     console.log(`Socket Event - offer: Received offer from ${from} to ${to} in room ${roomNum}`);
 
-    // (11) 수신한 offer를 처리하고 answer 생성
     const peerConnection = peerConnections[`${roomNum}-${from}-${to}`];
-    console.log(peerConnection)
+    console.log(peerConnection);
 
     if (peerConnection) {
         await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
@@ -65,19 +69,19 @@ socket.on('offer', async ({ to, from, offer, roomNum }) => {
 
         // (12) 생성된 answer를 offer 보낸 사용자에게 전송
         console.log(`Sending answer from ${to} to ${from} in room ${roomNum}`);
-        socket.emit('answer', {to: from, from: to, answer, roomNum});
+        socket.emit('answer', { to: from, from: to, answer, roomNum });
     } else {
         console.error(`No peerConnection found for ${roomNum}-${from}-${to}`);
     }
-    // 현재 peerConnections 상태 로그 출력
+
+    // (13) 현재 peerConnections 상태 로그 출력
     logPeerConnections();
 });
 
-// (13) answer 수신 시 처리
+// (14) answer 수신 시 처리
 socket.on('answer', async ({ to, from, answer, roomNum }) => {
     console.log(`Socket Event - answer: Received answer from ${from} in room ${roomNum}`);
 
-    // (14) offer를 보냈던 사용자가 받은 answer를 처리하여 연결 완료
     const peerConnection = peerConnections[`${roomNum}-${from}-${to}`];
     if (peerConnection) {
         console.log(`Setting remote description for connection from ${from}`);
