@@ -213,7 +213,6 @@ const TextChat = () => {
 
     const joinRoom = async (roomNum, userId) => {
         try {
-            console.log(`Attempting to join room ${roomNum} with user ${userId}`);
             const response = await fetch(`https://botox-chat.site/api/rooms/${roomNum}/join`, {
                 method: 'POST',
                 headers: {
@@ -224,33 +223,35 @@ const TextChat = () => {
             });
 
             const data = await response.json();
-            console.log('Join room response:', data);
             if (!response.ok) throw new Error(data.message || '방 입장에 실패했습니다.');
 
             // 중복된 참가자 ID 제거
             const uniqueParticipantIds = [...new Set(data.participantIds)];
-            if (data.participantIds && currentUser) {
-                const updatedUsers = uniqueParticipantIds.map(id => ({
-                    id,
-                    name: id === roomInfo.roomMasterId ? "방장" :
-                        id === currentUser.id ? currentUser.nickname : `사용자 ${id}`,
-                    isCurrentUser: id === currentUser.id
-                }));
-                setInUsers(updatedUsers);
-                console.log('중복 제거 후 참가자 목록:', updatedUsers);
+            const updatedUsers = uniqueParticipantIds.map(id => ({
+                id,
+                name: id === roomInfo.roomMasterId ? "방장" :
+                    id === currentUser.id ? currentUser.nickname : `사용자 ${id}`,
+                isCurrentUser: id === currentUser.id
+            }));
 
-                // 방 정보 업데이트
-                const updatedRoomInfo = {
-                    ...roomInfo,
-                    roomUserCount: uniqueParticipantIds.length,
-                    roomParticipantIds: uniqueParticipantIds
-                };
-                setRoomInfo(updatedRoomInfo);
+            // 기존 참가자 목록과 새로운 참가자 목록 병합
+            setInUsers(prevUsers => {
+                const existingUserIds = new Set(prevUsers.map(user => user.id));
+                const newUsers = updatedUsers.filter(user => !existingUserIds.has(user.id));
+                return [...prevUsers, ...newUsers];
+            });
 
-                // WebSocket을 통해 업데이트된 방 정보 브로드캐스트
-                if (stompClient && stompClient.connected) {
-                    stompClient.send("/app/rooms/" + roomNum + "/update", {}, JSON.stringify(updatedRoomInfo));
-                }
+            // 방 정보 업데이트
+            const updatedRoomInfo = {
+                ...roomInfo,
+                roomUserCount: uniqueParticipantIds.length,
+                roomParticipantIds: uniqueParticipantIds
+            };
+            setRoomInfo(updatedRoomInfo);
+
+            // WebSocket을 통해 업데이트된 방 정보 브로드캐스트
+            if (stompClient && stompClient.connected) {
+                stompClient.send("/app/rooms/" + roomNum + "/update", {}, JSON.stringify(updatedRoomInfo));
             }
 
             return data;
@@ -350,13 +351,16 @@ const TextChat = () => {
 
     const updateRoomInfo = (updatedRoom) => {
         if (updatedRoom.roomNum === roomInfo.roomNum) {
+            // 방 정보 업데이트
             setRoomInfo(updatedRoom);
-            setInUsers(updatedRoom.roomParticipantIds.map(id => ({
+            // 참가자 목록 업데이트
+            const updatedUsers = updatedRoom.roomParticipantIds.map(id => ({
                 id,
                 name: id === updatedRoom.roomMasterId ? "방장" :
                     id === currentUser.id ? currentUser.nickname : `사용자 ${id}`,
                 isCurrentUser: id === currentUser.id
-            })));
+            }));
+            setInUsers(updatedUsers);
         }
     };
 
