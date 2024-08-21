@@ -6,93 +6,7 @@ import call from '../../../images/call.png';
 import report from '../../../images/report.png';
 import friend from '../../../images/friend.png';
 import { FaArrowLeft } from 'react-icons/fa';
-
-const RoomEditModal = ({ isOpen, onClose, onSave, currentRoomInfo }) => {
-    const [roomTitle, setRoomTitle] = useState(currentRoomInfo.roomTitle);
-    const [roomType, setRoomType] = useState(currentRoomInfo.roomType);
-    const [roomPassword, setRoomPassword] = useState(currentRoomInfo.roomPassword);
-    const [roomCapacityLimit, setRoomCapacityLimit] = useState(currentRoomInfo.roomCapacityLimit);
-
-
-    useEffect(() => {
-        if (currentRoomInfo) {
-            setRoomTitle(currentRoomInfo.roomTitle);
-            setRoomType(currentRoomInfo.roomType);
-            setRoomPassword(currentRoomInfo.roomPassword);
-            setRoomCapacityLimit(currentRoomInfo.roomCapacityLimit);
-        }
-    }, [currentRoomInfo]);
-
-
-    const handleSave = () => {
-        const updatedRoomInfo = {
-            roomTitle,
-            roomType,
-            roomPassword,
-            roomCapacityLimit
-        };
-        onSave(updatedRoomInfo);
-        onClose();
-    };
-
-    return (
-        <>
-            {isOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex z-10 justify-center items-center">
-                    <div className="bg-customFriendBg p-6 rounded-lg w-96">
-                        <h2 className="text-2xl text-white font-bold mb-4">방 정보 수정</h2>
-                        <input
-                            type="text"
-                            value={roomTitle}
-                            onChange={(e) => setRoomTitle(e.target.value)}
-                            placeholder="방 제목"
-                            className="w-full text-white bg-customMainBg p-2 mb-2 border rounded"
-                        />
-                        <select
-                            value={roomType}
-                            onChange={(e) => setRoomType(e.target.value)}
-                            className="w-full text-white bg-customMainBg p-2 mb-2 border rounded"
-                        >
-                            <option value="VOICE">음성</option>
-                            <option value="TEXT">텍스트</option>
-                        </select>
-                        <input
-                            type="password"
-                            value={roomPassword}
-                            onChange={(e) => setRoomPassword(e.target.value)}
-                            placeholder="방 비밀번호 (선택사항)"
-                            className="w-full text-white bg-customMainBg p-2 mb-2 border rounded"
-                        />
-                        <input
-                            type="number"
-                            value={roomCapacityLimit}
-                            onChange={(e) => setRoomCapacityLimit(e.target.value)}
-                            placeholder="최대 인원"
-                            className="w-full text-white bg-customMainBg p-2 mb-2 border rounded"
-                            min="2"
-                        />
-                        <div className="flex justify-end">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="px-4 py-2 bg-gray-300 rounded mr-2"
-                            >
-                                취소
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleSave}
-                                className="px-4 py-2 bg-customIdBg text-white rounded"
-                            >
-                                저장
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </>
-    );
-};
+import RoomEditModal from "../modal/RoomEditModal";
 
 const VoiceChat = () => {
     const navigate = useNavigate();
@@ -102,6 +16,8 @@ const VoiceChat = () => {
     const [userData, setUserData] = useState(null);
     const textareaRef = useRef(null);
     const [newNickname, setNewNickname] = useState("");
+    const [rooms, setRooms] = useState([]);
+    const [filteredPosts, setFilteredPosts] = useState([]);
     const [inUsers, setInUsers] = useState([]);
     const [messages, setMessages] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
@@ -175,9 +91,10 @@ const VoiceChat = () => {
 
     useEffect(() => {
         const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-        setCurrentUser(userInfo);
 
-        if (userInfo) {
+        if (userInfo && roomInfo && roomInfo.roomNum) {
+            setCurrentUser(userInfo);
+
             const initialUsers = [
                 { id: userInfo.id, nickname: userInfo.nickname }
             ];
@@ -189,19 +106,11 @@ const VoiceChat = () => {
 
             return () => leaveRoom(roomInfo.roomNum, userInfo.id);
         }
-    }, [roomInfo.roomNum]);
-
-    useEffect(() => {
-        const storedRoomInfo = localStorage.getItem(`room_${roomNum}`);
-        if (storedRoomInfo) {
-            setRoomInfo(JSON.parse(storedRoomInfo));
-        } else {
-            console.error('로컬 스토리지에서 방 정보를 찾을 수 없습니다.');
-        }
-    }, [roomNum]);
+    }, [roomInfo]);
 
     const joinRoom = async (roomNum, userId) => {
         try {
+            console.log(`Attempting to join room ${roomNum} with user ${userId}`);
             const response = await fetch(`https://botox-chat.site/api/rooms/${roomNum}/join`, {
                 method: 'POST',
                 headers: {
@@ -210,21 +119,22 @@ const VoiceChat = () => {
                 },
                 body: JSON.stringify({ userId })
             });
-            if (!response.ok) throw new Error('방 입장에 실패했습니다.');
-            const data = await response.json();
-            setRoomInfo(data);
-            localStorage.setItem(`room_${data.roomNum}`, JSON.stringify(data));
-            console.log('방에 성공적으로 입장했습니다.', data);
 
+            const data = await response.json();
+            console.log('Join room response:', data);
+            if (!response.ok) throw new Error(data.message || '방 입장에 실패했습니다.');
+
+            // 중복된 참가자 ID 제거
+            const uniqueParticipantIds = [...new Set(data.participantIds)];
             if (data.participantIds && currentUser) {
-                const updatedUsers = data.participantIds.map(id => ({
+                const updatedUsers = uniqueParticipantIds.map(id => ({
                     id,
                     name: id === roomInfo.roomMasterId ? "방장" :
                         id === currentUser.id ? currentUser.nickname : `사용자 ${id}`,
                     isCurrentUser: id === currentUser.id
                 }));
                 setInUsers(updatedUsers);
-                console.log('방 입장 후 참가자 목록:', updatedUsers);
+                console.log('중복 제거 후 참가자 목록:', updatedUsers);
             }
         } catch (error) {
             console.error('Error joining room:', error);
@@ -241,11 +151,17 @@ const VoiceChat = () => {
                 },
                 body: JSON.stringify({ userId })
             });
-            if (!response.ok) throw new Error('방 나가기에 실패했습니다.');
+
             const data = await response.json();
-            console.log('방을 성공적으로 나갔습니다.', data);
-            if (data.participantIds) {
-                setInUsers(data.participantIds.map(id => ({ id, nickname: `사용자 ${id}` })));
+            if (data.code === 'NO_CONTENT') {
+                console.log('방을 성공적으로 나갔습니다.');
+                // 방을 나간 후 상태를 업데이트합니다.
+                setMessages([]);
+                setInUsers([]);
+
+                // 방 목록에서 해당 방을 제거
+                setRooms(prevRooms => prevRooms.filter(room => room.roomNum !== roomNum));
+                setFilteredPosts(prevRooms => prevRooms.filter(room => room.roomNum !== roomNum));
             }
         } catch (error) {
             console.error('Error leaving room:', error);
@@ -274,23 +190,24 @@ const VoiceChat = () => {
     const handleBack = async () => {
         if (currentUser) {
             await leaveRoom(roomInfo.roomNum, currentUser.id);
+            setMessages([]);
+            setInUsers([]);
         }
-        navigate(`/room/${roomInfo.gameName}`);
+        const gameName = roomInfo.roomContent || 'defaultGame'; // gameName이 없을 경우 기본값 설정
+        navigate(`/rooms?game=${gameName}`);
     };
 
     const handleCallEnd = async () => {
         if (currentUser) {
             await leaveRoom(roomInfo.roomNum, currentUser.id);
+            setMessages([]);
+            setInUsers([]);
         }
-        navigate(`/room/${roomInfo.gameName}`);
+        const gameName = roomInfo.roomContent || 'defaultGame'; // gameName이 없을 경우 기본값 설정
+        navigate(`/rooms?game=${gameName}`);
     };
 
     const handleRoomUpdate = async (updatedRoomInfo) => {
-        if (!currentUser || currentUser.id !== roomInfo.roomMasterId) {
-            console.error('방장만 방 정보를 수정할 수 있습니다.');
-            return;
-        }
-
         try {
             const response = await fetch(`https://botox-chat.site/api/rooms/${roomNum}`, {
                 method: 'PUT',
@@ -298,17 +215,16 @@ const VoiceChat = () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
-                body: JSON.stringify(updatedRoomInfo),
+                body: JSON.stringify(updatedRoomInfo)
             });
 
             if (response.ok) {
                 const data = await response.json();
-                if (data.code === 'OK') {
+                if (data.code === "OK") {
+                    console.log("방 정보 업데이트 성공:", data.data);
                     const updatedRoom = data.data;
-                    setEditRoomInfo(updatedRoom);
+                    setEditRoomInfo(updatedRoom); // 업데이트된 방 정보를 상태에 반영
                     localStorage.setItem(`room_${updatedRoom.roomNum}`, JSON.stringify(updatedRoom));
-                    console.log('방 수정 완료:', updatedRoom);
-                    setIsEditing(false);
                 } else {
                     console.error('방 수정 실패:', data.message);
                 }
@@ -320,6 +236,30 @@ const VoiceChat = () => {
             console.error('방 수정 중 오류 발생:', error);
         }
     };
+
+    useEffect(() => {
+        const fetchRoomInfo = async () => {
+            try {
+                console.log(`Fetching info for room ${roomNum}`);
+                const response = await fetch(`https://botox-chat.site/api/rooms?roomNum=${roomNum}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    }
+                });
+                const result = await response.json();
+                console.log("Room info API response:", result);
+                if (result.code === "OK" && result.data) {
+                    setRoomInfo(result.data);
+                } else {
+                    console.error("Failed to fetch room data:", result.message);
+                }
+            } catch (error) {
+                console.error("Error fetching room data:", error);
+            }
+        };
+
+        fetchRoomInfo();
+    }, [roomNum]);
 
     const handleOpenRoomEditModal = () => {
         setIsRoomEditModalOpen(true);
