@@ -19,6 +19,7 @@ const TextChat = () => {
     const chatContainerRef = useRef(null);
     const textareaRef = useRef(null);
     const [isConnected, setIsConnected] = useState(false);
+    const [isExiting, setIsExiting] = useState(false); // 상태 추가
     const navigate = useNavigate();
     const location = useLocation();
     const roomInfo = location.state?.roomInfo || {}; // Ensure roomInfo is an object
@@ -277,7 +278,6 @@ const TextChat = () => {
                 // 방을 나간 후 상태를 업데이트합니다.
                 setMessages([]);
                 setInUsers([]);
-
                 // 방 목록에서 해당 방을 제거
                 setRooms(prevRooms => prevRooms.filter(room => room.roomNum !== roomNum));
                 setFilteredPosts(prevRooms => prevRooms.filter(room => room.roomNum !== roomNum));
@@ -288,6 +288,8 @@ const TextChat = () => {
     };
 
     const handleExit = async () => {
+        if (isExiting) return; // 이미 진행 중이면 함수 종료
+        setIsExiting(true); // 진행 중 상태 설정
         if (currentUser) {
             await leaveRoom(roomInfo.roomNum, currentUser.id);
             setMessages([]);
@@ -295,6 +297,7 @@ const TextChat = () => {
         }
         const gameName = roomInfo.roomContent || 'defaultGame'; // gameName이 없을 경우 기본값 설정
         navigate(`/rooms?game=${gameName}`);
+        setIsExiting(false); // 진행 완료 상태 설정
     };
 
     useEffect(() => {

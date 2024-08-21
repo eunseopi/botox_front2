@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AWS from 'aws-sdk';
 
-const s3 = new AWS.S3();
+// AWS S3 설정
+const s3 = new AWS.S3({
+
+});
 
 function WritePage() {
     const [title, setTitle] = useState('');
@@ -25,7 +28,7 @@ function WritePage() {
     const uploadImageToS3 = async (file) => {
         const fileName = `${Date.now()}_${file.name}`;
         const params = {
-            // Bucket: s3BucketName,
+            Bucket: process.env.REACT_APP_S3_BUCKET_NAME,
             Key: fileName,
             Body: file,
             ContentType: file.type,
@@ -61,21 +64,25 @@ function WritePage() {
                 return;
             }
 
-            const formData = new FormData();
-            formData.append('title', title);
-            formData.append('content', content);
-            formData.append('userId', userId);
-            formData.append('postType', 'GENERAL');
-            formData.append('imageUrl', imageUrl);
+            // 이미지 URL을 포함한 게시글 작성 요청
+            const postData = {
+                title: title,
+                content: content,
+                userId: userId,
+                postType: 'GENERAL',
+                imageUrl: imageUrl, // 업로드된 이미지 URL
+            };
 
             response = await fetch('https://botox-chat.site/api/posts', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
                 },
-                body: formData
+                body: JSON.stringify(postData)
             });
         } else {
+            // 이미지 없이 게시글 작성 요청
             const postData = {
                 title: title,
                 content: content,
@@ -96,9 +103,6 @@ function WritePage() {
         if (!response.ok) {
             if (response.status === 403) {
                 alert('권한이 없습니다. 로그인 상태를 확인해주세요.');
-                localStorage.removeItem('token');
-                localStorage.removeItem('username');
-                navigate('/login');
             } else if (response.status === 401) {
                 alert('인증이 만료되었습니다. 다시 로그인해주세요.');
                 localStorage.removeItem('token');
@@ -123,6 +127,7 @@ function WritePage() {
             alert('게시글 작성에 실패했습니다. 다시 시도해 주세요.');
         }
     };
+
 
     return (
         <div className="bg-customMainBg min-h-screen mt-40 p-8">

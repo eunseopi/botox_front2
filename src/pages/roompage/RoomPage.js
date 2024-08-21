@@ -12,7 +12,12 @@ import FriendSearchModal from "./modal/FriendSearchModal";
 import profile from "../../images/profile.jpg";
 
 
-const GameCard = ({ room, onClick }) => (
+const GameCard = ({ room, onClick }) => {
+    const userCount = typeof room.roomUserCount === 'number'
+    ? room.roomUserCount
+    : (Array.isArray(room.participantIds) && room.participantIds.length > 0 ? room.participantIds.length : 0);
+
+    return (
     <div className="bg-customBoardBg rounded-lg p-4 mb-4 shadow-lg m-auto w-8/12 cursor-pointer"
          onClick={() => onClick(room)}>
         <div className="flex items-center justify-between mb-2">
@@ -32,11 +37,12 @@ const GameCard = ({ room, onClick }) => (
                 </div>
             </div>
             <div className="ml-auto text-white -mt-10">
-                <p>{room.roomParticipantIds ? room.roomParticipantIds.length : 0}/{room.roomCapacityLimit}</p>
+                <p>{userCount}/{room.roomCapacityLimit}</p>
             </div>
         </div>
     </div>
-);
+    );
+};
 
 const RoomPage = () => {
     const [modalOpen, setModalOpen] = useState(false);
