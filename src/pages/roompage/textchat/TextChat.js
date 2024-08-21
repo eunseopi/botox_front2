@@ -227,29 +227,21 @@ const TextChat = () => {
 
             // participants가 정의되지 않았을 때 기본값을 빈 배열로 설정
             const participants = data.participants || [];
-            const uniqueParticipantIds = [...new Set(participants.map(user => user.id))];
+
+            // 기존 참가자 목록과 새로운 참가자 목록 병합
+            const existingParticipants = new Set(inUsers.map(user => user.id));
+            const newParticipants = participants.filter(user => !existingParticipants.has(user.id));
+
+            // 참가자 목록 업데이트
+            setInUsers(prevUsers => [...prevUsers, ...newParticipants]);
 
             // 방 정보 업데이트
             const updatedRoomInfo = {
                 ...roomInfo,
-                roomUserCount: uniqueParticipantIds.length,
+                roomUserCount: participants.length,
                 participants: participants
             };
             setRoomInfo(updatedRoomInfo);
-
-            // 참가자 목록 업데이트
-            const updatedUsers = participants.map(user => ({
-                id: user.id,
-                name: user.name,
-                isCurrentUser: user.isCurrentUser
-            }));
-
-            setInUsers(prevUsers => {
-                // 현재 참가자 목록에서 새로운 참가자를 추가
-                const existingUserIds = new Set(prevUsers.map(user => user.id));
-                const newUsers = updatedUsers.filter(user => !existingUserIds.has(user.id));
-                return [...prevUsers, ...newUsers];
-            });
 
             // WebSocket을 통해 업데이트된 방 정보 브로드캐스트
             if (stompClient && stompClient.connected) {
@@ -262,6 +254,7 @@ const TextChat = () => {
             throw error;
         }
     };
+
 
 
 
