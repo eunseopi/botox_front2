@@ -54,7 +54,6 @@ const RoomPage = () => {
     const [userData, setUserData] = useState(null);
     const modalBackground = useRef(null);
     const friendsModalBackground = useRef(null);
-    const { game } = useParams();  // URL 파라미터에서 game 읽기
     const [currentPage, setCurrentPage] = useState(1);
     const [filteredPosts, setFilteredPosts] = useState([]);
     const [friendList, setFriendList] = useState([]);
@@ -63,6 +62,8 @@ const RoomPage = () => {
     const location = useLocation();
     const roomInfo = location.state?.roomInfo || {};
     const [lastRoomNums, setLastRoomNums] = useState({});
+    const query = new URLSearchParams(location.search);
+    const game = query.get('game');
 
     useEffect(() => {
         const storedLastRoomNum = localStorage.getItem(`lastRoomNum_${game}`);
@@ -176,7 +177,7 @@ const RoomPage = () => {
                 throw new Error('No token found');
             }
 
-            const response = await fetch(`https://botox-chat.site/api/rooms/${game}`, {
+            const response = await fetch(`https://botox-chat.site/api/rooms?roomContent=${game}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -194,17 +195,19 @@ const RoomPage = () => {
 
             const result = await response.json();
 
+            // 응답 데이터 확인
+            console.log('Server response:', result);
+
             if (!result.data || !Array.isArray(result.data)) {
                 throw new Error('Invalid data received from server');
             }
 
-            // 현재 게임에 해당하는 방만 필터링합니다.
-            const filteredRooms = result.data.filter(room => room.roomContent === game);
-            setRooms(filteredRooms);
-            setFilteredPosts(filteredRooms);
+            // 방 목록을 setRooms와 setFilteredPosts에 저장
+            setRooms(result.data);
+            setFilteredPosts(result.data);
 
             // 방 번호에 따라 정렬
-            const sortedRooms = filteredRooms.sort((a, b) => a.roomNum - b.roomNum);
+            const sortedRooms = result.data.sort((a, b) => a.roomNum - b.roomNum);
             setRooms(sortedRooms);
             setFilteredPosts(sortedRooms);
 
@@ -219,7 +222,6 @@ const RoomPage = () => {
                 [game]: maxRoomNum
             }));
             localStorage.setItem(`lastRoomNum_${game}`, maxRoomNum.toString());
-
         } catch (error) {
             console.error('Error fetching room data:', error);
             setRooms([]);
@@ -247,10 +249,6 @@ const RoomPage = () => {
 
     const handleClickHome = () => {
         navigate('/');
-    }
-
-    const handleWrite = () => {
-        navigate('/write')
     }
 
     const handleLogoutBtn = () => {

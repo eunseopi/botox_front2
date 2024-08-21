@@ -10,32 +10,48 @@ import userIcon from '../../images/user-icon.png';
 import gta from '../../images/gta.png';
 
 const MainPage = () => {
-    const [userCount, setUserCount] = useState(0);
+    const [userCounts, setUserCounts] = useState({ lol: 0, sudden: 0, gta: 0 });
     const [gameName, setGameName] = useState('');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
-        // 사용자 수를 랜덤으로 업데이트하는 interval 설정
-        const intervalId = setInterval(() => {
-            const randomCount = Math.floor(Math.random() * 500);
-            setUserCount(randomCount);
-        }, 3000);
-
-        return () => clearInterval(intervalId);
-    }, []);
-
-    useEffect(() => {
         // 로그인 상태를 localStorage에서 가져옴
         const userInfo = localStorage.getItem('userInfo');
         const token = localStorage.getItem('token');
-        // userInfo가 존재하고 token이 있으면 로그인 상태로 간주
         if (userInfo && token) {
             setIsLoggedIn(true);
         } else {
             setIsLoggedIn(false);
         }
     }, []); // 빈 배열로 dependency 설정하여 컴포넌트 마운트 시 한 번만 실행
+
+    const fetchUserCount = async (game) => {
+        try {
+            const response = await fetch(`https://botox-chat.site/api/rooms/${game}/count`);
+            const data = await response.json();
+            return data.count || 0; // 데이터가 없으면 0으로 설정
+        } catch (error) {
+            console.error('Failed to fetch user count', error);
+            return 0;
+        }
+    };
+
+    useEffect(() => {
+        const updateUserCounts = async () => {
+            const lolCount = await fetchUserCount('lol');
+            const suddenCount = await fetchUserCount('sudden');
+            const gtaCount = await fetchUserCount('gta');
+            setUserCounts({ lol: lolCount, sudden: suddenCount, gta: gtaCount });
+        };
+
+        updateUserCounts();
+
+        // Interval 설정하여 주기적으로 유저 수를 업데이트
+        const intervalId = setInterval(updateUserCounts, 30000); // 30초마다 업데이트
+
+        return () => clearInterval(intervalId);
+    }, []);
 
     const handleAuth = () => {
         if (isLoggedIn) {
@@ -48,14 +64,13 @@ const MainPage = () => {
     };
 
     const handleInRoom = (game) => {
-        navigate(`/room/${game}`);
+        navigate(`/rooms?game=${game}`);
     };
 
     return (
         <div className="flex flex-col min-h-screen">
             <div className="w-full bg-customTopNav h-10">
-                <nav className="flex items-center justify-between px-4">
-                    <img src={menuImage} alt="Menu" className="w-10 h-10 p-2 mr-2" />
+                <nav className="flex items-center justify-end mt-2 px-4">
                     <div className="flex items-center">
                         <a
                             href="#"
@@ -96,25 +111,28 @@ const MainPage = () => {
                     <h1 className="text-4xl text-white font-light p-10">Select Game!</h1>
                 </div>
                 <div className="flex flex-wrap justify-center px-4 sm:px-6 lg:px-64">
+                    {/* LoL */}
                     <div className="w-full sm:w-1/2 md:w-1/3 p-2 relative">
-                        <img src={lol} alt="MenuLoL" className="w-auto h-auto object-cover rounded" onClick={() => handleInRoom('lol')} />
-                        <div className="absolute top-5 right-7 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full flex items-center">
-                            <img src={userIcon} alt="User" className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                            <span>{userCount}</span>
+                        <img src={lol} alt="MenuLoL" className="w-full h-auto object-cover rounded" onClick={() => handleInRoom('lol')} />
+                        <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full flex items-center space-x-1 md:space-x-2">
+                            <img src={userIcon} alt="User" className="w-4 h-4" />
+                            <span className="text-sm md:text-base">{userCounts.lol}</span>
                         </div>
                     </div>
+                    {/* Sudden */}
                     <div className="w-full sm:w-1/2 md:w-1/3 p-2 relative">
-                        <img src={sudden} alt="MenuSudden" className="w-auto h-auto object-cover rounded" onClick={() => handleInRoom('sudden')} />
-                        <div className="absolute top-4 right-7 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full flex items-center">
-                            <img src={userIcon} alt="User" className="w-4 h-4 mr-1" />
-                            <span>{userCount}</span>
+                        <img src={sudden} alt="MenuSudden" className="w-full h-auto object-cover rounded" onClick={() => handleInRoom('sudden')} />
+                        <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full flex items-center space-x-1 md:space-x-2">
+                            <img src={userIcon} alt="User" className="w-4 h-4" />
+                            <span className="text-sm md:text-base">{userCounts.sudden}</span>
                         </div>
                     </div>
+                    {/* GTA */}
                     <div className="w-full sm:w-1/2 md:w-1/3 p-2 relative">
-                        <img src={gta} alt="MenuGta" className="w-auto h-auto object-cover rounded" onClick={() => handleInRoom('gta')} />
-                        <div className="absolute top-4 right-7 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full flex items-center">
-                            <img src={userIcon} alt="User" className="w-4 h-4 mr-1" />
-                            <span>{userCount}</span>
+                        <img src={gta} alt="MenuGta" className="w-full h-auto object-cover rounded" onClick={() => handleInRoom('gta')} />
+                        <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full flex items-center space-x-1 md:space-x-2">
+                            <img src={userIcon} alt="User" className="w-4 h-4" />
+                            <span className="text-sm md:text-base">{userCounts.gta}</span>
                         </div>
                     </div>
                 </div>
