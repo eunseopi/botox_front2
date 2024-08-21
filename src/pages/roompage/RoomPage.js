@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {useNavigate, useLocation, useParams} from "react-router-dom";
+import {useNavigate, useLocation} from "react-router-dom";
 import menuImage from "../../images/menu.png";
-import roomIcon from '../../images/roomIcon.png';
 import egg from '../../images/egg.png';
 import search from "../../images/search.png";
 import CreateRoomModal from './CreateRoomModal';
@@ -45,10 +44,8 @@ const RoomPage = () => {
     const [rooms, setRooms] = useState([]);
     const [friendsModalOpen, setFriendsModalOpen] = useState(false);
     const [createRoomModalOpen, setCreateRoomModalOpen] = useState(false);
-    const [passwordModalOpen, setPasswordModalOpen] = useState(false); // 비밀번호 모달 상태 추가
-    const [selectedRoom, setSelectedRoom] = useState(null); // 선택된 방 상태 추가
-    // const [friendSearchInput, setFriendSearchInput] = useState('');
-    // const [friendSearchResults, setFriendSearchResults] = useState([]);
+    const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+    const [selectedRoom, setSelectedRoom] = useState(null);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [showFriendSearchModal, setShowFriendSearchModal] = useState(false);
     const [userData, setUserData] = useState(null);
@@ -81,6 +78,7 @@ const RoomPage = () => {
         fetchRoomData();
     }, [game]);
 
+
     // useEffect에서 마지막 방 번호 로드
     useEffect(() => {
         const storedLastRoomNums = JSON.parse(localStorage.getItem('lastRoomNums')) || {};
@@ -91,17 +89,6 @@ const RoomPage = () => {
         fetchUserData();
         fetchFriendList();
     }, []);
-
-    useEffect(() => {
-        if (friendsModalOpen) {
-            console.log("About to fetch friend list"); // 추가된 로그
-            fetchFriendList();
-        }
-    }, [friendsModalOpen]);
-
-    useEffect(() => {
-        console.log('Friend list:', friendList); // 렌더링 시 상태 로그
-    }, [friendList]);
 
     const fetchFriendList = async () => {
         try {
@@ -129,15 +116,13 @@ const RoomPage = () => {
 
             const data = await response.json();
             console.log('Friend list data:', data);
-            // data가 배열 형태인 경우
             if (Array.isArray(data)) {
-                // 셀프 추가 방지 및 수락된 친구만 필터링
                 const filteredData = data.filter(friend =>
                     friend.receiverId === userId && friend.status === 'ACCEPTED'
                 );
-                setFriendList(filteredData); // 상태 업데이트
+                setFriendList(filteredData);
             } else {
-                setFriendList([]); // 빈 배열로 초기화
+                setFriendList([]);
             }
         } catch (error) {
             console.error('Error fetching friend list:', error);
@@ -194,29 +179,25 @@ const RoomPage = () => {
             }
 
             const result = await response.json();
-
-            // 응답 데이터 확인
             console.log('Server response:', result);
 
             if (!result.data || !Array.isArray(result.data)) {
                 throw new Error('Invalid data received from server');
             }
 
-            // 방 목록을 setRooms와 setFilteredPosts에 저장
-            setRooms(result.data);
-            setFilteredPosts(result.data);
+            const processedRooms = result.data.map(room => ({
+                ...room,
+                roomParticipantIds: [...new Set(room.roomParticipantIds)]
+            }));
 
-            // 방 번호에 따라 정렬
-            const sortedRooms = result.data.sort((a, b) => a.roomNum - b.roomNum);
+            const sortedRooms = processedRooms.sort((a, b) => a.roomNum - b.roomNum);
             setRooms(sortedRooms);
             setFilteredPosts(sortedRooms);
 
-            // 현재 게임의 최대 방 번호 계산
             const maxRoomNum = sortedRooms.length > 0
                 ? Math.max(...sortedRooms.map(room => room.roomNum))
                 : 0;
 
-            // 마지막 방 번호 업데이트
             setLastRoomNums(prevNums => ({
                 ...prevNums,
                 [game]: maxRoomNum
@@ -228,6 +209,7 @@ const RoomPage = () => {
             setFilteredPosts([]);
         }
     };
+
 
     const handleClickOutside = useCallback((e) => {
         if (modalOpen && modalBackground.current && !modalBackground.current.contains(e.target)) {
@@ -252,7 +234,7 @@ const RoomPage = () => {
     }
 
     const handleLogoutBtn = () => {
-        // localStorage.removeItem('token');
+        localStorage.removeItem('token');
         navigate('/login');
     }
 
@@ -266,7 +248,7 @@ const RoomPage = () => {
             setSelectedRoom(room);
             setPasswordModalOpen(true);
         } else {
-            enterRoom(room);
+            navigate(`/rooms/${room.roomNum}`, { state: { roomInfo: room } });
         }
     };
 
@@ -338,18 +320,32 @@ const RoomPage = () => {
     }
 
     const handleRoomCreated = (newRoom) => {
-        // 서버로부터 받은 방 정보를 그대로 사용
         const updatedRoom = {
             ...newRoom,
             roomContent: newRoom.roomContent
         };
 
-        // 방 목록 업데이트
         const updatedRooms = [updatedRoom, ...rooms];
         setRooms(updatedRooms);
         setFilteredPosts(updatedRooms);
 
         setCreateRoomModalOpen(false);
+
+        navigate(`/rooms/${updatedRoom.roomNum}`, { state: { roomInfo: updatedRoom } });
+    };
+
+    const handlePasswordSubmit = (enteredPassword) => {
+        if (enteredPassword === selectedRoom.roomPassword) {
+            navigate(`/rooms/${selectedRoom.roomNum}`, { state: { roomInfo: selectedRoom } });
+            setPasswordModalOpen(false);
+        } else {
+            alert('비밀번호가 틀렸습니다.');
+        }
+    };
+
+    const handlePasswordModalClose = () => {
+        setPasswordModalOpen(false);
+        setSelectedRoom(null);
     };
 
 

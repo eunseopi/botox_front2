@@ -13,6 +13,8 @@ const TextChat = () => {
     const [userData, setUserData] = useState(null);
     const [newNickname, setNewNickname] = useState("");
     const [RoomInfo, setRoomInfo] = useState(null);
+    const [rooms, setRooms] = useState([]);
+    const [filteredPosts, setFilteredPosts] = useState([]);
     const [stompClient, setStompClient] = useState(null);
     const chatContainerRef = useRef(null);
     const textareaRef = useRef(null);
@@ -217,26 +219,28 @@ const TextChat = () => {
                 },
                 body: JSON.stringify({ userId })
             });
-            if (!response.ok) throw new Error(data.message || '방 입장에 실패했습니다.');
+
             const data = await response.json();
             console.log('Join room response:', data);
-            setRoomInfo(data);
-            localStorage.setItem(`room_${data.roomNum}`, JSON.stringify(data));
-            // 서버로부터 받은 최신 참가자 목록으로 상태 업데이트
+            if (!response.ok) throw new Error(data.message || '방 입장에 실패했습니다.');
+
+            // 중복된 참가자 ID 제거
+            const uniqueParticipantIds = [...new Set(data.participantIds)];
             if (data.participantIds && currentUser) {
-                const updatedUsers = data.participantIds.map(id => ({
+                const updatedUsers = uniqueParticipantIds.map(id => ({
                     id,
                     name: id === roomInfo.roomMasterId ? "방장" :
                         id === currentUser.id ? currentUser.nickname : `사용자 ${id}`,
                     isCurrentUser: id === currentUser.id
                 }));
                 setInUsers(updatedUsers);
-                console.log('방 입장 후 참가자 목록:', updatedUsers);
+                console.log('중복 제거 후 참가자 목록:', updatedUsers);
             }
         } catch (error) {
             console.error('Error joining room:', error);
         }
     };
+
 
     const leaveRoom = async (roomNum, userId) => {
         try {
@@ -255,6 +259,10 @@ const TextChat = () => {
                 // 방을 나간 후 상태를 업데이트합니다.
                 setMessages([]);
                 setInUsers([]);
+
+                // 방 목록에서 해당 방을 제거
+                setRooms(prevRooms => prevRooms.filter(room => room.roomNum !== roomNum));
+                setFilteredPosts(prevRooms => prevRooms.filter(room => room.roomNum !== roomNum));
             } else {
                 console.error('방 나가기에 실패했습니다.', data.message);
             }
@@ -412,3 +420,5 @@ const TextChat = () => {
 };
 
 export default TextChat;
+
+
