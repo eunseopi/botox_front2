@@ -79,6 +79,8 @@ const TextChat = () => {
                 console.log('Received message:', message.body); // 수신된 메시지 로그 추가
                 const newMessage = JSON.parse(message.body);
                 setMessages((prevMessages) => [...prevMessages, newMessage]);
+                const updatedRoom = JSON.parse(message.body);
+                updateRoomInfo(updatedRoom);
             });
             setStompClient(stompClient);
             setIsConnected(true);
@@ -235,9 +237,25 @@ const TextChat = () => {
                 }));
                 setInUsers(updatedUsers);
                 console.log('중복 제거 후 참가자 목록:', updatedUsers);
+
+                // 방 정보 업데이트
+                const updatedRoomInfo = {
+                    ...roomInfo,
+                    roomUserCount: uniqueParticipantIds.length,
+                    roomParticipantIds: uniqueParticipantIds
+                };
+                setRoomInfo(updatedRoomInfo);
+
+                // WebSocket을 통해 업데이트된 방 정보 브로드캐스트
+                if (stompClient && stompClient.connected) {
+                    stompClient.send("/app/rooms/" + roomNum + "/update", {}, JSON.stringify(updatedRoomInfo));
+                }
             }
+
+            return data;
         } catch (error) {
             console.error('Error joining room:', error);
+            throw error;
         }
     };
 
@@ -263,8 +281,6 @@ const TextChat = () => {
                 // 방 목록에서 해당 방을 제거
                 setRooms(prevRooms => prevRooms.filter(room => room.roomNum !== roomNum));
                 setFilteredPosts(prevRooms => prevRooms.filter(room => room.roomNum !== roomNum));
-            } else {
-                console.error('방 나가기에 실패했습니다.', data.message);
             }
         } catch (error) {
             console.error('Error leaving room:', error);
@@ -327,6 +343,18 @@ const TextChat = () => {
     const handleSaveRoomInfo = (updatedRoomInfo) => {
         handleRoomUpdate(updatedRoomInfo);
         setIsRoomEditModalOpen(false); // 모달 닫기
+    };
+
+    const updateRoomInfo = (updatedRoom) => {
+        if (updatedRoom.roomNum === roomInfo.roomNum) {
+            setRoomInfo(updatedRoom);
+            setInUsers(updatedRoom.roomParticipantIds.map(id => ({
+                id,
+                name: id === updatedRoom.roomMasterId ? "방장" :
+                    id === currentUser.id ? currentUser.nickname : `사용자 ${id}`,
+                isCurrentUser: id === currentUser.id
+            })));
+        }
     };
 
 
