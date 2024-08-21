@@ -68,7 +68,7 @@ const TextChat = () => {
     };
 
     useEffect(() => {
-        const socket = new WebSocket('wss://botox-chat.site/ws'); // WebSocket 서버 URL을 확인하세요.
+        const socket = new WebSocket('ws://localhost:3000/ws'); // WebSocket 서버 URL을 확인하세요.
         const stompClient = Stomp.over(socket);
 
         stompClient.connect({}, (frame) => {
@@ -118,14 +118,6 @@ const TextChat = () => {
         }
     }, [messages]);
 
-    useEffect(() => {
-        const storedRoomInfo = localStorage.getItem(`room_${roomNum}`);
-        if (storedRoomInfo) {
-            setRoomInfo(JSON.parse(storedRoomInfo));
-        } else {
-            console.error('로컬 스토리지에서 방 정보를 찾을 수 없습니다.');
-        }
-    }, [roomNum]);
 
     useEffect(() => {
         console.log('현재 방 참가자:', inUsers);
@@ -134,7 +126,7 @@ const TextChat = () => {
     useEffect(() => {
         if (roomInfo && currentUser) {
             // participants가 정의되어 있는지 확인
-            const participants = roomInfo.participants || []; // Default to an empty array if participants is undefined
+            const participants = roomInfo.participants || [];
 
             // 참가자 목록 업데이트
             const updatedUsers = participants.map(user => ({
@@ -175,6 +167,14 @@ const TextChat = () => {
         }
     };
 
+    useEffect(() => {
+        if (stompClient) {
+            console.log('STOMP Client:', stompClient);
+            console.log('STOMP Client Connected:', stompClient.connected);
+        }
+    }, [stompClient]);
+
+
     const handleKeyPress = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -182,8 +182,33 @@ const TextChat = () => {
         }
     };
 
+    useEffect(() => {
+        const fetchRoomInfo = async () => {
+            try {
+                console.log(`Fetching info for room ${roomNum}`);
+                const response = await fetch(`https://botox-chat.site/api/rooms?roomNum=${roomNum}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    }
+                });
+                const result = await response.json();
+                console.log("Room info API response:", result);
+                if (result.code === "OK" && result.data) {
+                    setRoomInfo(result.data);
+                } else {
+                    console.error("Failed to fetch room data:", result.message);
+                }
+            } catch (error) {
+                console.error("Error fetching room data:", error);
+            }
+        };
+
+        fetchRoomInfo();
+    }, [roomNum]);
+
     const joinRoom = async (roomNum, userId) => {
         try {
+            console.log(`Attempting to join room ${roomNum} with user ${userId}`);
             const response = await fetch(`https://botox-chat.site/api/rooms/${roomNum}/join`, {
                 method: 'POST',
                 headers: {
@@ -192,11 +217,11 @@ const TextChat = () => {
                 },
                 body: JSON.stringify({ userId })
             });
-            if (!response.ok) throw new Error('방 입장에 실패했습니다.');
+            if (!response.ok) throw new Error(data.message || '방 입장에 실패했습니다.');
             const data = await response.json();
+            console.log('Join room response:', data);
             setRoomInfo(data);
             localStorage.setItem(`room_${data.roomNum}`, JSON.stringify(data));
-            console.log('방에 성공적으로 입장했습니다.', data);
             // 서버로부터 받은 최신 참가자 목록으로 상태 업데이트
             if (data.participantIds && currentUser) {
                 const updatedUsers = data.participantIds.map(id => ({
@@ -244,8 +269,14 @@ const TextChat = () => {
             setMessages([]);
             setInUsers([]);
         }
-        navigate(`/room/${roomInfo.gameName}`);
+        const gameName = roomInfo.roomContent || 'defaultGame'; // gameName이 없을 경우 기본값 설정
+        navigate(`/rooms?game=${gameName}`);
     };
+
+    useEffect(() => {
+        console.log('Room info:', roomInfo);
+    }, [roomInfo]);
+
 
     const handleReport = () => {
         alert("신고가 접수되었습니다.");
@@ -289,6 +320,7 @@ const TextChat = () => {
         handleRoomUpdate(updatedRoomInfo);
         setIsRoomEditModalOpen(false); // 모달 닫기
     };
+
 
     return (
         <div className="bg-customMainBg text-white h-screen flex flex-col">

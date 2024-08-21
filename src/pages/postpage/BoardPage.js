@@ -11,20 +11,16 @@ import { AiOutlineUserAdd } from "react-icons/ai";
 import FriendSearchModal from "../roompage/modal/FriendSearchModal";
 
 const GameCard = ({ post, onClick }) => (
-    <div className="bg-customBoardBg rounded-lg p-4 mb-4 shadow-lg m-auto w-8/12 cursor-pointer"
+    <div className="bg-customBoardBg rounded-lg p-4 mb-4 shadow-lg mx-auto max-w-3xl cursor-pointer"
          onClick={() => onClick(post)}>
-        <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center">
-                <div className="mr-8">
-                    <p className="flex text-white ml-2 mt-2">{post.postId}</p>
-                </div>
-                <div className="flex">
-                    <h3 className="font-bold text-white mt-2">{post.title}</h3>
-                    <div className="flex mt-3 fixed right-80">
-                        <img src={egg} alt="Egg" className="w-5 h-3 mt-2 mr-2"/>
-                        <p className="text-white">{post.authorId}</p>
-                    </div>
-                </div>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between mb-2">
+            <div className="flex items-center mb-4 sm:mb-0">
+                <p className="text-white sm:text-xl  mr-4">{post.postId}</p>
+                <h3 className="text-white sm:text-xl">{post.title}</h3>
+            </div>
+            <div className="flex items-center mt-2 md:mt-0">
+                <img src={egg} alt="Egg" className="w-6 h-4 mr-2"/>
+                <p className="text-white text-sm sm:text-base">{post.authorId}</p>
             </div>
         </div>
     </div>

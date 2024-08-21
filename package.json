@@ -1,7 +1,6 @@
 {
   "name": "game_dashboard",
   "version": "0.1.0",
-  "proxy": "https://botox-chat.site",
   "private": true,
   "dependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.14.5",
@@ -9,6 +8,7 @@
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
+    "aws-sdk": "^2.1673.0",
     "axios": "^1.7.2",
     "date-fns": "^3.6.0",
     "react": "^18.3.1",
