@@ -225,29 +225,31 @@ const TextChat = () => {
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || '방 입장에 실패했습니다.');
 
-            // 중복된 참가자 ID 제거
-            const uniqueParticipantIds = [...new Set(data.participantIds)];
-            const updatedUsers = uniqueParticipantIds.map(id => ({
-                id,
-                name: id === roomInfo.roomMasterId ? "방장" :
-                    id === currentUser.id ? currentUser.nickname : `사용자 ${id}`,
-                isCurrentUser: id === currentUser.id
-            }));
-
-            // 기존 참가자 목록과 새로운 참가자 목록 병합
-            setInUsers(prevUsers => {
-                const existingUserIds = new Set(prevUsers.map(user => user.id));
-                const newUsers = updatedUsers.filter(user => !existingUserIds.has(user.id));
-                return [...prevUsers, ...newUsers];
-            });
+            // participants가 정의되지 않았을 때 기본값을 빈 배열로 설정
+            const participants = data.participants || [];
+            const uniqueParticipantIds = [...new Set(participants.map(user => user.id))];
 
             // 방 정보 업데이트
             const updatedRoomInfo = {
                 ...roomInfo,
                 roomUserCount: uniqueParticipantIds.length,
-                roomParticipantIds: uniqueParticipantIds
+                participants: participants
             };
             setRoomInfo(updatedRoomInfo);
+
+            // 참가자 목록 업데이트
+            const updatedUsers = participants.map(user => ({
+                id: user.id,
+                name: user.name,
+                isCurrentUser: user.isCurrentUser
+            }));
+
+            setInUsers(prevUsers => {
+                // 현재 참가자 목록에서 새로운 참가자를 추가
+                const existingUserIds = new Set(prevUsers.map(user => user.id));
+                const newUsers = updatedUsers.filter(user => !existingUserIds.has(user.id));
+                return [...prevUsers, ...newUsers];
+            });
 
             // WebSocket을 통해 업데이트된 방 정보 브로드캐스트
             if (stompClient && stompClient.connected) {
@@ -260,6 +262,8 @@ const TextChat = () => {
             throw error;
         }
     };
+
+
 
 
     const leaveRoom = async (roomNum, userId) => {
@@ -354,15 +358,16 @@ const TextChat = () => {
             // 방 정보 업데이트
             setRoomInfo(updatedRoom);
             // 참가자 목록 업데이트
-            const updatedUsers = updatedRoom.roomParticipantIds.map(id => ({
-                id,
-                name: id === updatedRoom.roomMasterId ? "방장" :
-                    id === currentUser.id ? currentUser.nickname : `사용자 ${id}`,
-                isCurrentUser: id === currentUser.id
+            const updatedUsers = updatedRoom.participants.map(user => ({
+                id: user.id,
+                name: user.name,
+                isCurrentUser: user.isCurrentUser
             }));
+
             setInUsers(updatedUsers);
         }
     };
+
 
 
     return (
