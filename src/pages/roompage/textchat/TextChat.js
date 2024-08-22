@@ -59,9 +59,10 @@ const TextChat = () => {
                 }
             });
             const result = await response.json();
+            console.log('fetchUserData result:', result); // 결과 확인
             if (result.code === "OK" && result.data) {
                 setUserData(result.data);
-                setNewNickname(result.data.userNickname || "");
+                setNewNickname(result.data.userNickname || ""); // 기본값을 빈 문자열로 설정
             } else {
                 console.error("Failed to fetch user data:", result.message);
             }
@@ -69,6 +70,7 @@ const TextChat = () => {
             console.error("Error fetching user data:", error);
         }
     };
+
 
     useEffect(() => {
         const socket = new WebSocket('ws://localhost:3000/ws'); // WebSocket 서버 URL을 확인하세요.
@@ -130,28 +132,23 @@ const TextChat = () => {
 
     useEffect(() => {
         if (roomInfo && currentUser) {
-            // participants가 정의되어 있는지 확인
-            const participants = roomInfo.participants || [];
+            const participantIds = roomInfo.participantIds || [];
+            const uniqueParticipantIds = Array.from(new Set(participantIds));
 
             // 참가자 목록 업데이트
-            const updatedUsers = participants.map(user => ({
-                id: user.id,
-                name: user.id === currentUser.id ? userData?.userNickname || "내 닉네임" : user.nickname,
-                isCurrentUser: user.id === currentUser.id
+            const updatedUsers = uniqueParticipantIds.map(id => ({
+                id,
+                name: id === currentUser.id ? userData?.userNickname || "내 닉네임" : "Unknown User",
+                isCurrentUser: id === currentUser.id
             }));
-
-            // 현재 사용자의 닉네임을 포함시킬 수 있는 경우 처리
-            if (currentUser.id && !participants.some(user => user.id === currentUser.id)) {
-                updatedUsers.push({
-                    id: currentUser.id,
-                    name: userData?.userNickname || "내 닉네임",
-                    isCurrentUser: true
-                });
-            }
 
             setInUsers(updatedUsers);
         }
     }, [currentUser, roomInfo, userData]);
+
+
+
+
 
     const handleSendMessage = () => {
         console.log('STOMP Client:', stompClient);
@@ -188,49 +185,51 @@ const TextChat = () => {
     };
 
     useEffect(() => {
-        const fetchRoomInfo = async () => {
-            try {
-                console.log(`Fetching info for room ${roomNum}`);
-                const response = await fetch(`https://botox-chat.site/api/rooms?roomNum=${roomNum}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    }
-                });
-                const result = await response.json();
-                console.log("Room info API response:", result);
-                if (result.code === "OK" && result.data) {
-                    // 참가자 목록 업데이트
-                    const participants = result.data.participants || [];
-                    const updatedUsers = participants.map(user => ({
-                        id: user.id,
-                        name: user.nickname,
-                        isCurrentUser: user.id === currentUser.id
-                    }));
+        // 방 정보가 있을 때만 호출
+        if (roomNum) {
+            fetchRoomInfo(); // 방 정보를 가져옵니다.
+        }
+    }, [roomNum]);
 
-                    // 현재 사용자의 닉네임을 포함시킬 수 있는 경우 처리
-                    if (currentUser && !updatedUsers.some(user => user.id === currentUser.id)) {
-                        updatedUsers.push({
-                            id: currentUser.id,
-                            name: userData?.userNickname || "내 닉네임",
-                            isCurrentUser: true
-                        });
-                    }
-                    setInUsers(updatedUsers);
-                } else {
-                    console.error("Failed to fetch room data:", result.message);
+
+    const fetchRoomInfo = async () => {
+        try {
+            const response = await fetch(`https://botox-chat.site/api/rooms?roomNum=${roomNum}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 }
-            } catch (error) {
-                console.error("Error fetching room data:", error);
+            });
+            const result = await response.json();
+            console.log('fetchRoomInfo result:', result); // 결과 확인
+
+            if (result.code === "OK" && result.data) {
+                const participantIds = result.data.participantIds || [];
+                const uniqueParticipantIds = Array.from(new Set(participantIds));
+
+                // 참가자 목록 업데이트
+                const updatedUsers = uniqueParticipantIds.map(id => ({
+                    id,
+                    name: id === currentUser?.id ? userData.userNickname || "내 닉네임" : "Unknown User",
+                    isCurrentUser: id === currentUser?.id
+                }));
+
+                setInUsers(updatedUsers);
+                setRoomInfo(prevRoomInfo => ({
+                    ...prevRoomInfo,
+                    roomUserCount: uniqueParticipantIds.length,
+                    participants: updatedUsers
+                }));
+            } else {
+                console.error("Failed to fetch room data:", result.message);
             }
-        };
+        } catch (error) {
+            console.error("Error fetching room data:", error);
+        }
+    };
 
-        fetchRoomInfo();
 
-        // 주기적으로 방 정보 갱신
-        const intervalId = setInterval(fetchRoomInfo, 5000); // 5초마다 갱신
 
-        return () => clearInterval(intervalId); // 컴포넌트 언마운트 시 인터벌 클리어
-    }, [roomNum, currentUser, userData]);
+
 
 
     const joinRoom = async (roomNum, userId) => {
@@ -248,19 +247,27 @@ const TextChat = () => {
             if (!response.ok) throw new Error(data.message || '방 입장에 실패했습니다.');
 
             // 참가자 목록 업데이트
-            const participants = data.participants || [];
-            const existingParticipants = new Set(inUsers.map(user => user.id));
-            const newParticipants = participants.filter(user => !existingParticipants.has(user.id));
+            const participants = data.participantIds || [];
 
-            setInUsers(prevUsers => [...prevUsers, ...newParticipants]);
+            // 중복 ID를 제거한 참가자 목록 생성
+            const uniqueParticipants = Array.from(new Map(participants.map(user => [user.id, user])).values());
+
+            setInUsers(prevUsers => {
+                const existingIds = new Set(prevUsers.map(user => user.id));
+                const newParticipants = uniqueParticipants.filter(user => !existingIds.has(user.id));
+                return [...prevUsers, ...newParticipants];
+            });
 
             // 방 정보 업데이트
             const updatedRoomInfo = {
                 ...roomInfo,
-                roomUserCount: participants.length,
-                participants: participants
+                roomUserCount: uniqueParticipants.length,
+                participants: uniqueParticipants
             };
             setRoomInfo(updatedRoomInfo);
+
+            // 방 정보를 새로 가져오기
+            fetchRoomInfo(); // 방 정보를 가져옵니다.
 
             return data;
         } catch (error) {
@@ -268,6 +275,10 @@ const TextChat = () => {
             throw error;
         }
     };
+
+
+
+
 
     const leaveRoom = async (roomNum, userId) => {
         try {
@@ -354,12 +365,23 @@ const TextChat = () => {
         setIsRoomEditModalOpen(false); // 모달 닫기
     };
 
+    useEffect(() => {
+        if (roomInfo && roomInfo.roomNum) {
+            fetchRoomInfo(); // 방 정보를 가져옵니다.
+        }
+    }, [roomInfo]);
+
+
     const updateRoomInfo = (updatedRoom) => {
         if (updatedRoom.roomNum === roomInfo.roomNum) {
             // 방 정보 업데이트
             setRoomInfo(updatedRoom);
+
+            // 중복 ID를 제거한 참가자 목록 생성
+            const uniqueParticipants = Array.from(new Map(updatedRoom.participants.map(user => [user.id, user])).values());
+
             // 참가자 목록 업데이트
-            const updatedUsers = updatedRoom.participants.map(user => ({
+            const updatedUsers = uniqueParticipants.map(user => ({
                 id: user.id,
                 name: user.name,
                 isCurrentUser: user.isCurrentUser
@@ -368,6 +390,9 @@ const TextChat = () => {
             setInUsers(updatedUsers);
         }
     };
+
+
+
 
 
 

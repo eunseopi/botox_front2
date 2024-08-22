@@ -22,6 +22,7 @@ const VoiceChat = () => {
     const [messages, setMessages] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
     const { roomNum } = useParams();
+    const [isExiting, setIsExiting] = useState(false); // 상태 추가
     const [editRoomInfo, setEditRoomInfo] = useState({
         roomTitle: "",
         roomContent: "",
@@ -70,20 +71,15 @@ const VoiceChat = () => {
 
     useEffect(() => {
         if (roomInfo && currentUser) {
-            const participants = roomInfo.participants || [];
-            const updatedUsers = participants.map(user => ({
-                id: user.id,
-                name: user.id === currentUser.id ? userData?.userNickname || "내 닉네임" : user.nickname,
-                isCurrentUser: user.id === currentUser.id
-            }));
+            const participantIds = roomInfo.participantIds || [];
+            const uniqueParticipantIds = Array.from(new Set(participantIds));
 
-            if (currentUser.id && !participants.some(user => user.id === currentUser.id)) {
-                updatedUsers.push({
-                    id: currentUser.id,
-                    name: userData?.userNickname || "내 닉네임",
-                    isCurrentUser: true
-                });
-            }
+            // 참가자 목록 업데이트
+            const updatedUsers = uniqueParticipantIds.map(id => ({
+                id,
+                name: id === currentUser.id ? userData?.userNickname || "내 닉네임" : "Unknown User",
+                isCurrentUser: id === currentUser.id
+            }));
 
             setInUsers(updatedUsers);
         }
@@ -110,7 +106,6 @@ const VoiceChat = () => {
 
     const joinRoom = async (roomNum, userId) => {
         try {
-            console.log(`Attempting to join room ${roomNum} with user ${userId}`);
             const response = await fetch(`https://botox-chat.site/api/rooms/${roomNum}/join`, {
                 method: 'POST',
                 headers: {
@@ -121,23 +116,35 @@ const VoiceChat = () => {
             });
 
             const data = await response.json();
-            console.log('Join room response:', data);
             if (!response.ok) throw new Error(data.message || '방 입장에 실패했습니다.');
 
-            // 중복된 참가자 ID 제거
-            const uniqueParticipantIds = [...new Set(data.participantIds)];
-            if (data.participantIds && currentUser) {
-                const updatedUsers = uniqueParticipantIds.map(id => ({
-                    id,
-                    name: id === roomInfo.roomMasterId ? "방장" :
-                        id === currentUser.id ? currentUser.nickname : `사용자 ${id}`,
-                    isCurrentUser: id === currentUser.id
-                }));
-                setInUsers(updatedUsers);
-                console.log('중복 제거 후 참가자 목록:', updatedUsers);
-            }
+            // 참가자 목록 업데이트
+            const participants = data.participantIds || [];
+
+            // 중복 ID를 제거한 참가자 목록 생성
+            const uniqueParticipants = Array.from(new Map(participants.map(user => [user.id, user])).values());
+
+            setInUsers(prevUsers => {
+                const existingIds = new Set(prevUsers.map(user => user.id));
+                const newParticipants = uniqueParticipants.filter(user => !existingIds.has(user.id));
+                return [...prevUsers, ...newParticipants];
+            });
+
+            // 방 정보 업데이트
+            const updatedRoomInfo = {
+                ...roomInfo,
+                roomUserCount: uniqueParticipants.length,
+                participants: uniqueParticipants
+            };
+            setRoomInfo(updatedRoomInfo);
+
+            // 방 정보를 새로 가져오기
+            fetchRoomInfo(); // 방 정보를 가져옵니다.
+
+            return data;
         } catch (error) {
             console.error('Error joining room:', error);
+            throw error;
         }
     };
 
@@ -155,13 +162,9 @@ const VoiceChat = () => {
             const data = await response.json();
             if (data.code === 'NO_CONTENT') {
                 console.log('방을 성공적으로 나갔습니다.');
-                // 방을 나간 후 상태를 업데이트합니다.
-                setMessages([]);
-                setInUsers([]);
 
-                // 방 목록에서 해당 방을 제거
-                setRooms(prevRooms => prevRooms.filter(room => room.roomNum !== roomNum));
-                setFilteredPosts(prevRooms => prevRooms.filter(room => room.roomNum !== roomNum));
+                // 참가자 목록에서 제거
+                setInUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
             }
         } catch (error) {
             console.error('Error leaving room:', error);
@@ -188,6 +191,8 @@ const VoiceChat = () => {
     };
 
     const handleBack = async () => {
+        if (isExiting) return; // 이미 진행 중이면 함수 종료
+        setIsExiting(true); // 진행 중 상태 설정
         if (currentUser) {
             await leaveRoom(roomInfo.roomNum, currentUser.id);
             setMessages([]);
@@ -195,9 +200,12 @@ const VoiceChat = () => {
         }
         const gameName = roomInfo.roomContent || 'defaultGame'; // gameName이 없을 경우 기본값 설정
         navigate(`/rooms?game=${gameName}`);
+        setIsExiting(false); // 진행 완료 상태 설정
     };
 
     const handleCallEnd = async () => {
+        if (isExiting) return; // 이미 진행 중이면 함수 종료
+        setIsExiting(true); // 진행 중 상태 설정
         if (currentUser) {
             await leaveRoom(roomInfo.roomNum, currentUser.id);
             setMessages([]);
@@ -205,6 +213,7 @@ const VoiceChat = () => {
         }
         const gameName = roomInfo.roomContent || 'defaultGame'; // gameName이 없을 경우 기본값 설정
         navigate(`/rooms?game=${gameName}`);
+        setIsExiting(false); // 진행 완료 상태 설정
     };
 
     const handleRoomUpdate = async (updatedRoomInfo) => {
@@ -238,28 +247,46 @@ const VoiceChat = () => {
     };
 
     useEffect(() => {
-        const fetchRoomInfo = async () => {
-            try {
-                console.log(`Fetching info for room ${roomNum}`);
-                const response = await fetch(`https://botox-chat.site/api/rooms?roomNum=${roomNum}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    }
-                });
-                const result = await response.json();
-                console.log("Room info API response:", result);
-                if (result.code === "OK" && result.data) {
-                    setRoomInfo(result.data);
-                } else {
-                    console.error("Failed to fetch room data:", result.message);
-                }
-            } catch (error) {
-                console.error("Error fetching room data:", error);
-            }
-        };
-
-        fetchRoomInfo();
+        // 방 정보가 있을 때만 호출
+        if (roomNum) {
+            fetchRoomInfo(); // 방 정보를 가져옵니다.
+        }
     }, [roomNum]);
+
+    const fetchRoomInfo = async () => {
+        try {
+            const response = await fetch(`https://botox-chat.site/api/rooms?roomNum=${roomNum}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                }
+            });
+            const result = await response.json();
+            console.log('fetchRoomInfo result:', result); // 결과 확인
+
+            if (result.code === "OK" && result.data) {
+                const participantIds = result.data.participantIds || [];
+                const uniqueParticipantIds = Array.from(new Set(participantIds));
+
+                // 참가자 목록 업데이트
+                const updatedUsers = uniqueParticipantIds.map(id => ({
+                    id,
+                    name: id === currentUser?.id ? userData.userNickname || "내 닉네임" : "Unknown User",
+                    isCurrentUser: id === currentUser?.id
+                }));
+
+                setInUsers(updatedUsers);
+                setRoomInfo(prevRoomInfo => ({
+                    ...prevRoomInfo,
+                    roomUserCount: uniqueParticipantIds.length,
+                    participants: updatedUsers
+                }));
+            } else {
+                console.error("Failed to fetch room data:", result.message);
+            }
+        } catch (error) {
+            console.error("Error fetching room data:", error);
+        }
+    };
 
     const handleOpenRoomEditModal = () => {
         setIsRoomEditModalOpen(true);
