@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import io from 'socket.io-client';
 import volume from '../../../images/volume.png';
 import mute from '../../../images/mute.png';
 import call from '../../../images/call.png';
@@ -39,6 +40,291 @@ const VoiceChat = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [isRoomEditModalOpen, setIsRoomEditModalOpen] = useState(false);
     const [RoomInfo, setRoomInfo] = useState(null);
+
+    // (1) Socket 서버에 연결
+    const socket = io('https://botox-chat.site', {
+        path: '/socket.io',
+        secure: true,
+    });
+
+// (2) 방 관리 객체 생성
+// 실제로 받은 room 에 존재하는 user 를 담을 것
+// -> 6번과 7번 로직 삭제 및 8번 올바르게 호출할 수 있게 변경할 것
+    let socketRooms = {};
+
+// (3) RTCPeerConnection 객체를 저장하는 객체 생성
+    const peerConnections = {};
+
+// (4) 사용자 미디어 스트림을 저장하는 객체 생성
+    let localStream = null;
+
+// (5) 클라이언트가 방에 입장했을 때 처리
+    socket.on('enter_room', async ({ userId, roomNum }) => {
+        console.log(`Socket Event - enter_room: User ${userId} entered room ${roomNum}`);
+
+        // (6)해당 roomNum이 존재하지 않으면 초기화
+        // room 의 필요성은..?
+        if (!socketRooms[roomNum]) {
+            console.log(`Room ${roomNum} does not exist, creating new room.`);
+            socketRooms[roomNum] = { users: [] };
+        } else {
+            console.log(`Room ${roomNum} already exist!`)
+        }
+
+        // (7) 방에 접속한 사용자 목록에 새로운 사용자 추가
+        if (!socketRooms[roomNum].users.includes(userId)) {
+            socketRooms[roomNum].users.push(userId);
+            console.log(`Current users in room ${roomNum}:`, socketRooms[roomNum].users);
+        }
+    });
+
+// (8) 기존 사용자가 새로 입장한 사용자에게 offer 생성 및 전송
+    socket.on('user_joined', async ({ userId, roomNum }) => {
+        console.log(`Socket Event - user_joined: User ${userId} joined room ${roomNum}`);
+
+        // (9) 방에 있는 모든 사용자들에 대해 offer 생성
+        for (const existingUserId of socketRooms[roomNum].users) {
+            if (existingUserId !== userId) {
+                const connectionKey = `${roomNum}-${existingUserId}-${userId}`;
+
+                // (9.1) 이미 연결이 존재하는지 확인
+                if (peerConnections[connectionKey]) {
+                    console.log(`PeerConnection already exists for ${existingUserId} to ${userId}`);
+                    continue; // 이미 연결이 존재하면, 새로 생성하지 않음
+                }
+
+                console.log(`Creating offer from ${existingUserId} to ${userId} in room ${roomNum}`);
+                const peerConnection = await createPeerConnection(userId, existingUserId, roomNum);
+                peerConnections[connectionKey] = peerConnection;
+                console.log(`(user_joined) create peerConnection ${connectionKey}`);
+
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer); // client A 의 Local -> client B가 Remote 로 받아야할 offer
+
+                // (10) 생성된 offer를 새로운 사용자에게 전송
+                console.log(`Socket Event(송신) offer from ${existingUserId} to ${userId}`);
+                socket.emit('offer', { to: userId, from: existingUserId, offer, roomNum });
+            }
+        }
+    });
+
+
+// (11) offer 수신 시 처리
+    socket.on('offer', async ({ to, from, offer, roomNum }) => {
+        console.log(`Socket Event(수신) - offer: Received offer from ${from} to ${to} in room ${roomNum}`);
+        const connectionKey = `${roomNum}-${to}-${from}`;
+        const peerConnection = await createPeerConnection(from, to, roomNum);
+        peerConnections[connectionKey] = peerConnection;
+        console.log(`(offer) create peerConnection ${connectionKey}`);
+
+        if (peerConnection) {
+            await peerConnection.setRemoteDescription(offer); // client B 의 Remote -> client A 의 Local offer
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer); // client B 의 Local -> client A 에게 보낼 Remote answer
+
+            // (12) 생성된 answer를 offer 보낸 사용자에게 전송
+            console.log(`Socket Event(송신) - answer from ${to} to ${from} in room ${roomNum}`);
+            socket.emit('answer', { to: from, from: to, answer, roomNum });
+        } else {
+            console.error(`(offer-수신) No peerConnection found for ${roomNum}-${from}-${to}`);
+        }
+
+        // (13) 현재 peerConnections 상태 로그 출력
+        logPeerConnections();
+    });
+
+// (14) answer 수신 시 처리
+    socket.on('answer', async ({ to, from, answer, roomNum }) => {
+        console.log(`Socket Event(수신) - answer: Received answer from ${from} in room ${roomNum}`);
+
+        const peerConnection = peerConnections[`${roomNum}-${to}-${from}`];
+        if (peerConnection) {
+            console.log(`Setting remote description for connection from ${from}`);
+            await peerConnection.setRemoteDescription(answer);
+        } else {
+            console.error(`(answer 수신) No peerConnection found for ${roomNum}-${from}-${to}`);
+        }
+    });
+
+    const localStreamRef = useRef(null); // 자신의 미디어 스트림을 저장
+
+// (15) RTCPeerConnection 생성 함수
+    async function createPeerConnection(toUserId, fromUserId, roomNum) {
+        console.log(`Creating new RTCPeerConnection for user ${toUserId} in room ${roomNum}`);
+        const peerConnection = new RTCPeerConnection({
+            iceServers: [
+                {
+                    urls: [
+                        "stun:stun.l.google.com:19302",
+                        "stun:stun1.l.google.com:19302",
+                        "stun:stun2.l.google.com:19302",
+                        "stun:stun3.l.google.com:19302",
+                        "stun:stun4.l.google.com:19302",
+                    ],
+                },
+            ],
+        });
+
+        // (16) ICE candidate 생성 시 서버로 전송
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+                console.log(`${fromUserId} ICE Candidate generated for ${toUserId}:`, event.candidate);
+                socket.emit('ice_candidate', {
+                    to: toUserId,
+                    from: fromUserId,
+                    candidate: event.candidate,
+                    roomNum
+                });
+            }
+        };
+
+        // (17) 로컬 스트림을 추가하고 상대방으로부터 트랙 수신 시 오디오 재생 및 소리 감지
+        if (localStreamRef.current) {
+            localStreamRef.current.getTracks().forEach((track) => {
+                console.log(`Adding track to peer connection for ${toUserId}`);
+                peerConnection.addTrack(track, localStreamRef.current);
+            });
+        }
+
+        peerConnection.ontrack = (event) => {
+            console.log(`Received remote track from ${toUserId}`);
+
+            // 로그 찍기
+            if (event.streams[0]) {
+                console.log('Remote audio stream received');
+                const audioElement = new Audio();
+                audioElement.srcObject = event.streams[0];
+                audioElement.play();
+
+                // 자신의 음성 스트림과 비교
+                if (event.streams[0] !== localStreamRef.current) {
+                    console.log('Remote audio stream is not local stream');
+                } else {
+                    console.log('Local audio stream received');
+                }
+
+                // (18) 소리 감지를 위한 AnalyserNode 생성
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const analyser = audioContext.createAnalyser();
+                const microphone = audioContext.createMediaStreamSource(event.streams[0]);
+                microphone.connect(analyser);
+
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                const detectVolume = () => {
+                    analyser.getByteFrequencyData(dataArray);
+                    const volume = dataArray.reduce((acc, val) => acc + val, 0) / dataArray.length;
+                    const userElement = document.getElementById(`user-${toUserId}`);
+                    if (userElement) {
+                        if (volume > 10) { // 소리 감지 임계값
+                            userElement.classList.add('speaking');
+                        } else {
+                            userElement.classList.remove('speaking');
+                        }
+                    }
+                    requestAnimationFrame(detectVolume);
+                };
+                detectVolume();
+            }
+        };
+
+        return peerConnection;
+    }
+
+// (19) ICE candidate 수신 시 처리
+    socket.on('ice_candidate', async ({to, from, candidate, roomNum }) => {
+        console.log(`Socket Event - ice_candidate: Received ICE candidate from ${from} in room ${roomNum}`);
+
+        // (19.1) 모든 peerConnection을 순회하여 적절한 연결을 찾는다.
+        for (const key in peerConnections) {
+            if (key.includes(roomNum) && key.includes(to) && key.includes(from)) {
+                const peerConnection = peerConnections[key];
+                if (peerConnection) {
+                    try {
+                        console.log(`Adding received ICE candidate to connection ${to} from ${from}`);
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                    } catch (error) {
+                        console.error(`Error adding ICE candidate: ${error}`);
+                    }
+                    return;
+                }
+            }
+        }
+
+        // (19.2) 적절한 peerConnection이 없을 경우, 에러 로그
+        console.error(`No peerConnection found for ${roomNum}-${to}-${from} to add ICE candidate`);
+        // (19.3) 필요한 경우, peerConnection을 생성하도록 시도할 수 있음
+        // (19.4) 관련 peerConnection을 다시 생성하거나 새로 생성할 수 있는 로직을 추가할 수 있음
+    });
+
+// (20) 사용자가 방에 입장하는 함수
+    async function joinSocket(userId, roomNum) {
+        // (21) Media stream을 한 번만 획득
+        if (!localStreamRef.current) {
+            try {
+                localStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+                console.log("Local media stream acquired.");
+            } catch (error) {
+                console.error("Error accessing media devices.", error);
+                return;
+            }
+        }
+
+        const tryEmitEnterSocket = () => {
+            if (socket.connected) {
+                console.log(`Joining room ${roomNum} as user ${userId}`);
+                socket.emit('enter_room', { userId, roomNum });
+            } else {
+                console.log("Socket is not connected. Retrying...");
+                setTimeout(tryEmitEnterSocket, 500); // 0.5초 후에 다시 시도
+            }
+        };
+
+        tryEmitEnterSocket();
+    }
+
+// (24) user_left 수신 시 처리
+    socket.on('user_left', ({ userId, roomNum }) => {
+        console.log(`Socket Event - user_left: User ${userId} left room ${roomNum}`);
+
+        // (25) 방에서 나간 사용자의 peerConnection 종료 및 정리
+        for (const key in peerConnections) {
+            if (key.includes(roomNum) && (key.includes(userId))) {
+                const peerConnection = peerConnections[key];
+                if (peerConnection) {
+                    console.log(`Closing peerConnection ${key}`);
+                    peerConnection.close();
+                    delete peerConnections[key];
+                }
+            }
+        }
+
+        // (26) UI에서 방에서 나간 사용자 제거 -> ui 동적 제거 상담 필요
+        const userElement = document.getElementById(`user-${userId}`);
+        if (userElement) {
+            userElement.classList.remove('speaking');
+        }
+    });
+
+// (22) 사용자가 방에서 나갈 때 호출되는 함수
+    function leaveSocket(userId, roomNum) {
+        console.log(`Leaving room ${roomNum} as user ${userId}`);
+        socket.emit('leave_room', { userId, roomNum });
+
+        // (22-2) 로컬 스트림 종료 및 clean up
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
+        }
+    }
+
+// (23) 현재 연결 상태 출력 함수
+    function logPeerConnections() {
+        console.log("Current peerConnections:");
+        for (const key in peerConnections) {
+            const [roomNum, fromUserId, toUserId] = key.split('-');
+            console.log(`Room: ${roomNum}, From: ${fromUserId}, To: ${toUserId}`);
+        }
+    }
 
     useEffect(() => {
         fetchUserData();
@@ -116,6 +402,7 @@ const VoiceChat = () => {
             });
 
             const data = await response.json();
+            await joinSocket(userId.toString(), roomNum.toString());
             if (!response.ok) throw new Error(data.message || '방 입장에 실패했습니다.');
 
             // 참가자 목록 업데이트
@@ -162,6 +449,7 @@ const VoiceChat = () => {
             const data = await response.json();
             if (data.code === 'NO_CONTENT') {
                 console.log('방을 성공적으로 나갔습니다.');
+                await leaveSocket(userId.toString(), roomNum.toString());
 
                 // 참가자 목록에서 제거
                 setInUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
