@@ -4,7 +4,9 @@ import AWS from 'aws-sdk';
 
 // AWS S3 설정
 const s3 = new AWS.S3({
-
+    region: 'ap-northeast-2', // 리전 설정
+    accessKeyId: process.env.REACT_APP_AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.REACT_APP_AWS_SECRET_ACCESS_KEY,
 });
 
 function WritePage() {
@@ -25,105 +27,46 @@ function WritePage() {
         setImage(e.target.files[0]);
     };
 
-    const uploadImageToS3 = async (file) => {
-        const fileName = `${Date.now()}_${file.name}`;
-        const params = {
-            Bucket: process.env.REACT_APP_S3_BUCKET_NAME,
-            Key: fileName,
-            Body: file,
-            ContentType: file.type,
-            ACL: 'public-read',
-        };
-
-        try {
-            const { Location } = await s3.upload(params).promise();
-            return Location; // S3에 업로드된 이미지의 URL을 반환
-        } catch (error) {
-            console.error('Error uploading image:', error);
-            alert('이미지 업로드에 실패했습니다.');
-            return null;
-        }
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const token = localStorage.getItem('token');
-        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-        const userId = userInfo.id;
 
-        if (!token || !userId) {
-            alert('로그인이 필요합니다.');
-            navigate('/login');
-            return;
-        }
+        const formData = new FormData();
+        formData.append('file', image);
+        formData.append('title', title);
+        formData.append('content', content);
+        formData.append('userId', JSON.parse(localStorage.getItem('userInfo')).id);
+        formData.append('postType', 'GENERAL');
 
-        let response;
-        if (image) {
-            const imageUrl = await uploadImageToS3(image);
-            if (!imageUrl) {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('https://botox-chat.site/api/posts', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                if (response.status === 403) {
+                    alert('권한이 없습니다. 로그인 상태를 확인해주세요.');
+                } else if (response.status === 401) {
+                    alert('인증이 만료되었습니다. 다시 로그인해주세요.');
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    navigate('/login');
+                } else {
+                    alert(`게시물을 저장하는 데 실패했습니다. 오류 코드: ${response.status}`);
+                }
                 return;
             }
 
-            // 이미지 URL을 포함한 게시글 작성 요청
-            const postData = {
-                title: title,
-                content: content,
-                userId: userId,
-                postType: 'GENERAL',
-                imageUrl: imageUrl, // 업로드된 이미지 URL
-            };
-
-            response = await fetch('https://botox-chat.site/api/posts', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(postData)
-            });
-        } else {
-            // 이미지 없이 게시글 작성 요청
-            const postData = {
-                title: title,
-                content: content,
-                userId: userId,
-                postType: 'GENERAL',
-            };
-
-            response = await fetch('https://botox-chat.site/api/posts', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(postData)
-            });
-        }
-
-        if (!response.ok) {
-            if (response.status === 403) {
-                alert('권한이 없습니다. 로그인 상태를 확인해주세요.');
-            } else if (response.status === 401) {
-                alert('인증이 만료되었습니다. 다시 로그인해주세요.');
-                localStorage.removeItem('token');
-                localStorage.removeItem('username');
-                navigate('/login');
-            } else {
-                alert(`게시물을 저장하는 데 실패했습니다. 오류 코드: ${response.status}`);
-            }
-            return;
-        }
-
-        const data = await response.json().catch(() => {
-            console.error('Failed to parse JSON response');
-            alert('서버 응답을 처리하는 중 오류가 발생했습니다.');
-        });
-
-        if (data?.status === "OK" && data.data.postId) {
-            console.log('New post added:', data.data);
-            alert(data.message);
-            navigate('/board', { state: { newPost: data.data } });
-        } else {
+            const { data } = await response.json();
+            console.log('New post added:', data);
+            alert(response.message);
+            navigate('/board', { state: { newPost: data } });
+        } catch (error) {
+            console.error(error);
             alert('게시글 작성에 실패했습니다. 다시 시도해 주세요.');
         }
     };

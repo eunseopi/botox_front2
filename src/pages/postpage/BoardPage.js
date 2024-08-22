@@ -10,17 +10,19 @@ import ProfileModal from "../roompage/modal/ProfileModal";
 import { AiOutlineUserAdd } from "react-icons/ai";
 import FriendSearchModal from "../roompage/modal/FriendSearchModal";
 
-const GameCard = ({ post, onClick }) => (
+const GameCard = ({ post, onClick, isHot }) => (
     <div className="bg-customBoardBg rounded-lg p-4 mb-4 shadow-lg mx-auto max-w-3xl cursor-pointer"
          onClick={() => onClick(post)}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between mb-2">
             <div className="flex items-center mb-4 sm:mb-0">
                 <p className="text-white sm:text-xl  mr-4">{post.postId}</p>
-                <h3 className="text-white sm:text-xl">{post.title}</h3>
+                <h3 className={`sm:text-xl ${isHot ? 'text-red-500' : 'text-white'}`}>
+                    {post.title}
+                </h3>
             </div>
             <div className="flex items-center mt-2 md:mt-0">
                 <img src={egg} alt="Egg" className="w-6 h-4 mr-2"/>
-                <p className="text-white text-sm sm:text-base">{post.authorId}</p>
+                <p className="text-white text-sm sm:text-base">{post.authorNickname}</p>
             </div>
         </div>
     </div>
@@ -39,6 +41,7 @@ const BoardPage = () => {
     const [filteredPosts, setFilteredPosts] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [friendList, setFriendList] = useState([]);
+    const [hotPosts, setHotPosts] = useState([]);
     const postsPerPage = 5;
     const modalBackground = useRef(null);
     const friendsModalBackground = useRef(null);
@@ -55,10 +58,24 @@ const BoardPage = () => {
                     Authorization: `Bearer ${token}`,
                 }
             });
+
             if (response.data && response.data.data && Array.isArray(response.data.data.content)) {
-                console.log('Posts data:', response.data.data.content); // 추가된 로그
-                setPosts(response.data.data.content);
-                setFilteredPosts(response.data.data.content);
+                const fetchedPosts = response.data.data.content;
+                setPosts(fetchedPosts);
+                setFilteredPosts(fetchedPosts);
+
+                // 인기 게시글 선정
+                const postsWithLikes = await Promise.all(
+                    fetchedPosts.map(async (post) => {
+                        const likesCount = await fetchLikesCount(post.postId);
+                        return { ...post, likesCount };
+                    })
+                );
+
+                const sortedPosts = postsWithLikes.sort((a, b) => b.likesCount - a.likesCount);
+                const topHotPosts = sortedPosts.slice(0, 1); // 좋아요 수가 가장 많은 1개 게시글
+                setHotPosts(topHotPosts);
+
             } else {
                 console.error('Unexpected response format', response.data);
             }
@@ -69,6 +86,7 @@ const BoardPage = () => {
             setIsLoading(false);
         }
     };
+
 
     const fetchFriendList = async () => {
         try {
@@ -111,6 +129,28 @@ const BoardPage = () => {
             setFriendList([]);
         }
     };
+
+    const fetchLikesCount = async (postId) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`https://botox-chat.site/api/posts/${postId}/likes`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                }
+            });
+            if (response.data.status === 'OK') {
+                return response.data.data;
+            } else {
+                console.error('Failed to fetch likes count');
+                return 0;
+            }
+        } catch (error) {
+            console.error('Error fetching likes count:', error);
+            return 0;
+        }
+    };
+
+
 
     useEffect(() => {
         fetchPosts();
@@ -228,9 +268,13 @@ const BoardPage = () => {
     };
 
     const getCurrentPosts = () => {
+        // 인기 게시글을 제외한 일반 게시글을 필터링함
+        const nonHotPosts = filteredPosts.filter(post => !hotPosts.some(hotPost => hotPost.postId === post.postId));
+
+        // 페이지에 해당하는 게시글만 가져옴 (인기 게시글 제외 후 페이지네이션 적용)
         const indexOfLastPost = currentPage * postsPerPage;
         const indexOfFirstPost = indexOfLastPost - postsPerPage;
-        return filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
+        return nonHotPosts.slice(indexOfFirstPost, indexOfLastPost);
     };
 
     const handlePageClick = (pageNumber) => {
@@ -300,7 +344,7 @@ const BoardPage = () => {
                                 <div className="space-y-2">
                                     {friendList && friendList.length > 0 ? (
                                         friendList.map((friend) => (
-                                            <div key={friend.requestId} className="flex items-center justify-between">
+                                            <div key={friend.requestId || `friend-${Math.random()}`} className="flex items-center justify-between">
                                                 <div className="flex items-center">
                                                     <div className="w-8 h-8 bg-gray-500 rounded-full mr-2"></div>
                                                     <span className="flex justify-between text-white">
@@ -322,27 +366,38 @@ const BoardPage = () => {
                 <h1 className="text-center sm:text-left">자유 게시판</h1>
             </div>
             <div className="flex-1 p-8 bg-customMainBg overflow-y-auto">
-                <div className="flex justify-end sm:mr-80 lg:mr-80 xl:mr-80 mb-4">
+                <div className="flex justify-end sm:mr-60 lg:mr-20 xl:mr-80 mb-4">
                     <button
                         onClick={handleWrite}
                         className="text-xl text-white bg-customBoardBg p-2 rounded-xl w-48"
                     >게시글 쓰기</button>
                 </div>
-                {isLoading ? (
-                    <p className="text-white text-center">게시글 불러오는중...</p>
-                ) : error ? (
-                    <p className="text-red-500 text-center">{error}</p>
-                ) : (
+                {/* 인기 게시글을 상단에 고정 표시 */}
+                {hotPosts.length > 0 && (
                     <div className="mb-8">
-                        {getCurrentPosts().map((post) => (
+                        <h2 className="text-white text-2xl text-center mb-4">🔥 인기 게시글</h2>
+                        {hotPosts.map((post, index) => (
                             <GameCard
-                                key={post.postId}
+                                key={`${post.postId}-${index}`}
                                 post={post}
                                 onClick={handlePostClick}
+                                isHot={true}  // 인기 게시글 여부 전달
                             />
                         ))}
                     </div>
                 )}
+                {/* 일반 게시글 목록 */}
+                <div className="mb-8">
+                    <h2 className="text-white text-2xl text-center mb-4">일반 게시글</h2>
+                    {getCurrentPosts().map((post, index) => (
+                        <GameCard
+                            key={`${post.postId}-${index}`}
+                            post={post}
+                            onClick={handlePostClick}
+                            isHot={false}  // 일반 게시글
+                        />
+                    ))}
+                </div>
                 <div className="flex items-center justify-center px-4">
                     <div className="relative w-full max-w-lg">
                         <input
@@ -364,7 +419,7 @@ const BoardPage = () => {
                 <div className="flex justify-center text-white">
                     {pageNumbers.map((num) => (
                         <button
-                            key={num}
+                            key={`page-${num}`}
                             className={`mx-1 px-3 py-1 rounded hover:bg-gray-700 ${currentPage === num ? 'bg-gray-700' : ''}`}
                             onClick={() => handlePageClick(num)}
                         >
