@@ -142,6 +142,8 @@ const VoiceChat = () => {
         }
     });
 
+    const localStreamRef = useRef(null); // 자신의 미디어 스트림을 저장
+
 // (15) RTCPeerConnection 생성 함수
     async function createPeerConnection(toUserId, fromUserId, roomNum) {
         console.log(`Creating new RTCPeerConnection for user ${toUserId} in room ${roomNum}`);
@@ -173,19 +175,29 @@ const VoiceChat = () => {
         };
 
         // (17) 로컬 스트림을 추가하고 상대방으로부터 트랙 수신 시 오디오 재생 및 소리 감지
-        if (localStream) {
-            localStream.getTracks().forEach((track) => {
+        if (localStreamRef.current) {
+            localStreamRef.current.getTracks().forEach((track) => {
                 console.log(`Adding track to peer connection for ${toUserId}`);
-                // 오디오 트랙 추가하여 상대방에게 전달될 준비를 함
-                peerConnection.addTrack(track, localStream);
+                peerConnection.addTrack(track, localStreamRef.current);
             });
         }
 
         peerConnection.ontrack = (event) => {
             console.log(`Received remote track from ${toUserId}`);
-            const audioElement = new Audio();
-            audioElement.srcObject = event.streams[0];
-            audioElement.play();
+
+            // 로그 찍기
+            if (event.streams[0]) {
+                console.log('Remote audio stream received');
+                const audioElement = new Audio();
+                audioElement.srcObject = event.streams[0];
+                audioElement.play();
+
+                // 자신의 음성 스트림과 비교
+                if (event.streams[0] !== localStreamRef.current) {
+                    console.log('Remote audio stream is not local stream');
+                } else {
+                    console.log('Local audio stream received');
+                }
 
             // (18) 소리 감지를 위한 AnalyserNode 생성
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -208,6 +220,7 @@ const VoiceChat = () => {
                 requestAnimationFrame(detectVolume);
             };
             detectVolume();
+            }
         };
 
         return peerConnection;
@@ -242,15 +255,10 @@ const VoiceChat = () => {
 // (20) 사용자가 방에 입장하는 함수
     async function joinSocket(userId, roomNum) {
         // (21) Media stream을 한 번만 획득
-        if (!localStream) {
+        if (!localStreamRef.current) {
             try {
-                // audio 스트림을 얻음
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                localStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
                 console.log("Local media stream acquired.");
-                // 연결된 audio 장치 확인
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const mic = devices.filter((device) => device.kind === "audiooutput");
-                console.log(`access mic : ${mic}`)
             } catch (error) {
                 console.error("Error accessing media devices.", error);
                 return;
