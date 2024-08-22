@@ -28,7 +28,19 @@ const MainPage = () => {
 
     const fetchUserCount = async (game) => {
         try {
-            const response = await fetch(`https://botox-chat.site/api/rooms/${game}/count`);
+            const token = localStorage.getItem('token'); // 토큰 가져오기
+            const response = await fetch(`https://botox-chat.site/api/rooms/${game}/count`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`, // 토큰 추가
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (response.status === 403) {
+                throw new Error('Forbidden: 권한이 없습니다.');
+            }
+
             const data = await response.json();
             return data.count || 0; // 데이터가 없으면 0으로 설정
         } catch (error) {
@@ -36,6 +48,7 @@ const MainPage = () => {
             return 0;
         }
     };
+
 
     useEffect(() => {
         const updateUserCounts = async () => {

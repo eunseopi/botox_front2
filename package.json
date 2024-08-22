@@ -1,6 +1,7 @@
 {
   "name": "game_dashboard",
   "version": "0.1.0",
+  "proxy": "https://botox-s3.s3.ap-northeast-2.amazonaws.com",
   "private": true,
   "dependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.14.5",

@@ -1,26 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { PiBellSimpleRingingFill } from "react-icons/pi";
+import { FaArrowLeft } from 'react-icons/fa';
 import { MdMoreVert } from "react-icons/md";
 import axios from "axios";
 import profile from "../../images/profile.jpg";
 
-const updatePost = async (postId, updatedPost) => {
-    const response = await axios.put(`https://botox-chat.site/api/posts/${postId}`, updatedPost, {
-        headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-        }
-    });
-    return response.data;
-};
-
-const deletePost = async (postId) => {
-    const response = await axios.delete(`https://botox-chat.site/api/posts/${postId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    });
-    return response.data;
-};
 
 const fetchCommentsByPostId = async (postId) => {
     try {
@@ -34,26 +18,6 @@ const fetchCommentsByPostId = async (postId) => {
     }
 };
 
-const reportComment = async (commentId, reportData) => {
-    const response = await axios.post(`https://botox-chat.site/api/comments/${commentId}/report`, reportData, {
-        headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-        }
-    });
-    return response.data;
-};
-
-const reportPost = async (postId, reportData) => {
-    const response = await axios.post(`https://botox-chat.site/api/posts/${postId}/report`, reportData, {
-        headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-        }
-    });
-    return response.data;
-};
-
 const PostDetailPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -63,98 +27,141 @@ const PostDetailPage = () => {
     const [editTitle, setEditTitle] = useState('');
     const [editContent, setEditContent] = useState('');
     const [currentUser, setCurrentUser] = useState(null);
-    const [post, setPost] = useState(location.state?.post);
+    const [post, setPost] = useState(location.state?.post || null);
     const [likesCount, setLikesCount] = useState(post?.likesCount || 0);
     const [commentCount, setCommentCount] = useState(post?.commentCnt || 0);
-    const [isLiked, setIsLiked] = useState(false);
+    const [isLiked, setIsLiked] = useState(post?.isLiked || false);
     const [showMenu, setShowMenu] = useState(null); // 새로운 상태 추가
+    const [userData, setUserData] = useState(null);
 
     useEffect(() => {
-        // 현재 로그인한 사용자 정보 가져오기
-        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-        setCurrentUser(userInfo);
+        console.log('userData:', userData);
+    }, [userData]);
 
-        // 로컬에서 댓글 불러오기
-        const storedComments = JSON.parse(localStorage.getItem(`comments_${post?.postId}`) || '[]');
-        setComments(storedComments);
-    }, [post?.postId]);
+    const fetchUserData = async () => {
+        const userId = JSON.parse(localStorage.getItem('userInfo')).username;
+        if (!userId) {
+            console.error('No username found in localStorage');
+            return;
+        }
+
+        try {
+            const response = await fetch(`https://botox-chat.site/api/users/${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                }
+            });
+            const result = await response.json();
+            if (result.code === "OK" && result.data) {
+                setUserData(result.data);
+            } else {
+                console.error("Failed to fetch user data:", result.message);
+            }
+        } catch (error) {
+            console.error("에러 이유:", error);
+        }
+    };
 
     useEffect(() => {
         if (post) {
-            setEditTitle(post.title);
-            setEditContent(post.content);
+            setIsLiked(post.isLiked || false);
             setLikesCount(post.likesCount || 0);
-            setCommentCount(post.commentCnt || 0);
         }
     }, [post]);
 
     useEffect(() => {
-        const fetchPostData = async () => {
-            try {
-                const storedPost = localStorage.getItem(`post_${post?.postId}`);
-                if (storedPost) {
-                    setPost(JSON.parse(storedPost));
-                }
-            } catch (error) {
-                console.error('게시글 데이터 로드 실패:', error);
-            }
-        };
+        fetchUserData();
+    }, [])
+
+    useEffect(() => {
+        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+        setCurrentUser(userInfo);
 
         if (post?.postId) {
-            fetchPostData();
             fetchCommentsByPostId(post.postId).then(response => {
                 if (response.status === 'OK') {
-                    setComments(response.data.map(comment => ({
-                        ...comment,
-                        isLiked: comment.likes.some(like => like.userId === currentUser?.id) // 사용자가 좋아요를 눌렀는지 확인
-                    })));
+                    setComments(response.data);  // 서버에서 받아온 댓글 데이터 설정
                 }
             }).catch(err => {
                 console.error('댓글 불러오기에 실패했습니다:', err.response?.data || err.message);
             });
         }
-    }, [post?.postId, currentUser?.id]);
+    }, [post?.postId]);
+
+    const isPostAuthor = userData?.userNickname === post?.authorNickname;
+
+    useEffect(() => {
+        if (post) {
+            setEditTitle(post.title || '');
+            setEditContent(post.content || '');
+            setLikesCount(post.likesCount || 0);
+            setCommentCount(post.commentCnt || 0);
+        }
+    }, [post]);
 
     const handleUpdate = async () => {
         try {
-            const response = await updatePost(post.postId, {
-                title: editTitle,
-                content: editContent,
-                postType: post.postType
-            });
+            const response = await axios.put(
+                `https://botox-chat.site/api/posts/${post.postId}?userId=${currentUser.id}`,
+                {
+                    title: editTitle,
+                    content: editContent,
+                    postType: post.postType
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json',
+                    }
+                }
+            );
 
-            if (response.status === 'OK') {
-                // 서버에서 받은 데이터로 상태를 업데이트
-                const updatedPost = response.data;
-                setPost(updatedPost);
+            const {code, message} = response.data;
+
+            if (code === 'OK') {
+                setPost(prevPost => ({
+                    ...prevPost,
+                    title: editTitle,
+                    content: editContent
+                }));
                 setIsEditing(false);
-
-                // LocalStorage에 업데이트된 게시글 저장
-                localStorage.setItem(`post_${updatedPost.postId}`, JSON.stringify(updatedPost));
+                alert(message);
             } else {
-                console.error('게시글 수정에 실패했습니다.');
+                alert(message);
             }
-        } catch (err) {
-            console.error('게시글 수정에 실패했습니다.');
-            console.error(err);
+        } catch (error) {
+            console.error('게시글 수정에 실패했습니다.', error);
+            alert('게시글 수정 중 오류가 발생했습니다.');
         }
     };
 
     const handleDelete = async () => {
         if (window.confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
             try {
-                const response = await deletePost(post.postId);
-                if (response.status === 'NO_CONTENT') {
-                    navigate('/board');
+                // 게시글 삭제 API 호출
+                const response = await axios.delete(`https://botox-chat.site/api/posts/${post.postId}?userId=${currentUser.id}`, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                // 응답 상태 확인
+                if (response.data.code === 'NO_CONTENT') {
+                    // 게시글 삭제 성공 시
+                    alert('게시글이 삭제되었습니다.');
+                    navigate('/board'); // 게시판 페이지로 이동
                 } else {
+                    // 다른 상태일 경우
                     alert('게시글 삭제에 실패했습니다.');
                 }
             } catch (err) {
-                console.error('게시글 삭제에 실패했습니다.');
-                console.error(err);
+                // 에러 처리
+                console.error('게시글 삭제에 실패했습니다.', err);
+                alert('게시글 삭제 중 오류가 발생했습니다.');
             }
         }
     };
+
 
     const handleCommentSubmit = async (e) => {
         e.preventDefault();
@@ -244,42 +251,202 @@ const PostDetailPage = () => {
         }
     };
 
-    const handleWriteLike = async () => {
-        try {
-            const response = await fetch(`https://botox-chat.site/api/posts/${post.postId}/like`, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`,
-                    'Content-Type': 'application/json'
-                }
-            });
+    // const handleWriteLike = async () => {
+    //     try {
+    //         const response = await axios.post(`https://botox-chat.site/api/posts/${post.postId}/like?userId=${currentUser.id}`, null, {
+    //             headers: {
+    //                 Authorization: `Bearer ${localStorage.getItem('token')}`,
+    //                 'Content-Type': 'application/json',
+    //             },
+    //         });
+    //
+    //         const { code, data, message } = response.data;
+    //
+    //         if (code === 'OK' && data && data.likesCount !== undefined) {
+    //             setLikesCount(data.likesCount); // UI 업데이트
+    //             setIsLiked(true); // 좋아요 상태 업데이트
+    //             const updatedPost = { ...post, likesCount: data.likesCount }; // 게시글 상태 업데이트
+    //             setPost(updatedPost);
+    //             localStorage.setItem(`post_${updatedPost.postId}`, JSON.stringify(updatedPost));
+    //         } else {
+    //             alert(message); // 서버에서 받은 메시지를 사용자에게 표시
+    //         }
+    //     } catch (error) {
+    //         console.error('좋아요 처리에 실패했습니다.', error);
+    //     }
+    // };
+    //
+    // const handleWriteLikeCancel = async () => {
+    //     try {
+    //         const response = await axios.delete(`https://botox-chat.site/api/posts/${post.postId}/like?userId=${currentUser.id}`, {
+    //             headers: {
+    //                 Authorization: `Bearer ${localStorage.getItem('token')}`,
+    //             },
+    //         });
+    //
+    //         const { code, data, message } = response.data;
+    //
+    //         if (code === 'OK' && data && data.likesCount !== undefined) {
+    //             setLikesCount(data.likesCount); // UI 업데이트
+    //             setIsLiked(false); // 좋아요 상태 업데이트
+    //             const updatedPost = { ...post, likesCount: data.likesCount }; // 게시글 상태 업데이트
+    //             setPost(updatedPost);
+    //             localStorage.setItem(`post_${updatedPost.postId}`, JSON.stringify(updatedPost));
+    //             alert(message);
+    //         } else {
+    //             alert(message); // 서버에서 받은 메시지를 사용자에게 표시
+    //         }
+    //     } catch (error) {
+    //         console.error('좋아요 취소에 실패했습니다.', error);
+    //     }
+    // };
 
-            if (response.ok) {
-                const updatedLikesCount = likesCount + 1;
-                setLikesCount(updatedLikesCount);
-                setIsLiked(true);
-                const updatedPost = { ...post, likesCount: updatedLikesCount };
-                setPost(updatedPost);
-                localStorage.setItem(`post_${updatedPost.postId}`, JSON.stringify(updatedPost));
+    const handleWriteLikes = async () => {
+        try {
+            let response;
+            let updatedLikesCount;
+
+            if (isLiked) {
+                // 좋아요 취소 요청
+                response = await axios.delete(`https://botox-chat.site/api/posts/${post.postId}/like?userId=${currentUser.id}`, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                });
+
+                if (response.status === 200) {
+                    updatedLikesCount = likesCount - 1; // 좋아요 취소 시 카운트 감소
+                } else {
+                    console.error('좋아요 취소에 실패했습니다.');
+                    return;
+                }
             } else {
-                console.error('좋아요 처리에 실패했습니다.');
+                // 좋아요 추가 요청
+                response = await axios.post(`https://botox-chat.site/api/posts/${post.postId}/like?userId=${currentUser.id}`, null, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (response.status === 200) {
+                    updatedLikesCount = likesCount + 1; // 좋아요 추가 시 카운트 증가
+                } else {
+                    console.error('좋아요 추가에 실패했습니다.');
+                    return;
+                }
+            }
+
+            // 서버 응답 데이터에서 likesCount를 사용하여 UI 상태 업데이트
+            const { code, data } = response.data;
+
+            if (code === 'OK' && data && data.likesCount !== undefined) {
+                setLikesCount(updatedLikesCount); // UI에 업데이트된 좋아요 카운트 설정
+                setIsLiked(!isLiked); // 좋아요 상태 토글
+                setPost(prevPost => ({
+                    ...prevPost,
+                    likesCount: updatedLikesCount,
+                    isLiked: !isLiked,
+                }));
+            } else {
+                console.error(response.data.message);
             }
         } catch (error) {
             console.error('좋아요 처리에 실패했습니다.', error);
         }
     };
 
-    const handleReport = async (commentId) => {
+
+
+
+    // 수정 모드 시작
+    const handleEditClick = () => {
+        setEditTitle(post.title);
+        setEditContent(post.content);
+        setIsEditing(true);
+    };
+
+    // 수정 취소
+    const handleCancelEdit = () => {
+        setIsEditing(false);
+    };
+
+    const handleReport = async (commentId, postId) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.error('토큰이 없습니다.');
+                return;
+            }
+
+            // 댓글 데이터를 가져옵니다
+            const commentsResponse = await axios.get(`https://botox-chat.site/api/posts/${postId}/comments`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            // 댓글 데이터를 확인합니다
+            const commentsData = commentsResponse.data;
+            console.log('댓글 데이터:', commentsData);
+
+            // 댓글 데이터에서 해당 댓글을 찾습니다
+            const commentData = commentsData.data.find(comment => comment.commentId === commentId);
+            if (!commentData) {
+                throw new Error('해당 댓글을 찾을 수 없습니다.');
+            }
+
+            // 댓글 작성자의 ID와 닉네임을 가져옵니다
+            const reportedUserId = commentData.authorId;
+
+            // 신고 데이터를 구성합니다
+            const reportData = {
+                reportingUserId: currentUser?.id || null,
+                reportingUserNickname: userData?.userNickname || '알 수 없음',
+                reportedUserId: reportedUserId,
+                reportedUserNickname: reportedUserId,
+                reportedContentId: commentId,
+                feedbackResult: "부적절한 내용",
+                reasonForReport: "이 게시글은 불쾌감을 주는 내용을 포함하고 있습니다.",
+                reportType: "WARNING"
+            };
+
+            console.log('Report data being sent:', reportData);
+
+            // 서버로 신고 데이터를 전송합니다
+            const response = await axios.post(`https://botox-chat.site/api/comments/${commentId}/report`, reportData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log('Server response:', response);
+            if (response.status === 200) {
+                alert('댓글이 성공적으로 신고되었습니다.');
+            } else {
+                alert('댓글 신고에 실패했습니다.');
+            }
+        } catch (err) {
+            console.error('댓글 신고에 실패했습니다.');
+            console.error(err);
+        }
+    };
+
+
+    const handleWriteReport = async () => {
         try {
             const reportData = {
                 reportingUserId: currentUser?.id,
                 reportingUserNickname: currentUser?.nickname,
-                reportedUserId: post.authorId, // 또는 댓글 작성자의 ID
-                reportedUserNickname: currentUser?.nickname, // 또는 댓글 작성자의 닉네임
-                reportedContentId: commentId,
+                reportedUserId: post.authorId, // 게시글 작성자 ID
+                reportedUserNickname: post.authorNickname, // 게시글 작성자 닉네임
+                feedbackResult: "부적절한 내용",
+                reasonForReport: "이 게시글은 불쾌감을 주는 내용을 포함하고 있습니다.",
+                reportType: "WARNING" // 서버에서 기대하는 값으로 수정
             };
 
-            const response = await axios.post(`https://botox-chat.site/api/comments/${commentId}/report`, reportData, {
+            const response = await axios.post(`https://botox-chat.site/api/posts/${post.postId}/report`, reportData, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
                     'Content-Type': 'application/json'
@@ -287,47 +454,55 @@ const PostDetailPage = () => {
             });
 
             if (response.status === 200) {
-                // 서버에서 성공 메시지 수신
-                alert('댓글이 성공적으로 신고되었습니다.');
+                alert('게시글이 성공적으로 신고되었습니다.');
             } else {
-                // 서버에서 실패 메시지 수신
-                alert('댓글 신고에 실패했습니다.');
+                alert('게시글 신고에 실패했습니다.');
             }
         } catch (err) {
-            // 예외 처리
-            console.error('댓글 신고에 실패했습니다.');
+            console.error('게시글 신고에 실패했습니다.');
             console.error(err);
         }
     };
 
-    const CommentMenu = ({ commentId }) => {
+
+    const CommentMenu = ({commentId, authorId}) => {
         const handleToggleMenu = () => {
             setShowMenu(prev => prev === commentId ? null : commentId);
         };
 
         return (
             <div className="relative">
-                <MdMoreVert onClick={handleToggleMenu} className="w-6 h-6 cursor-pointer" />
+                <MdMoreVert onClick={handleToggleMenu} className="w-6 h-6 cursor-pointer"/>
                 {showMenu === commentId && (
                     <div className="absolute right-3 -mt-5 mr-2 w-24 bg-white border rounded shadow-lg z-50">
-                        <button onClick={() => handleCommentDelete(commentId)} className="block w-full px-4 py-2 text-center hover:bg-gray-200">삭제</button>
-                        <button onClick={() => handleReport('comment', commentId)} className="block w-full px-4 py-2 text-center hover:bg-gray-200">신고</button>
+                        {currentUser && currentUser.id === authorId ? (
+                            // 본인 댓글일 때만 '수정' 버튼 표시
+                            <button onClick={() => handleCommentDelete(commentId)}
+                                    className="block w-full px-4 py-2 text-center hover:bg-gray-200">삭제</button>
+                        ) : (
+                            // 다른 사람 댓글일 때만 '신고' 버튼 표시
+                            <button onClick={() => handleReport(commentId, post.postId)}
+                                    className="block w-full px-4 py-2 text-center hover:bg-gray-200">신고</button>
+                        )}
                     </div>
                 )}
             </div>
         );
     };
 
-    const Comment = ({ comment }) => (
+    const handleExit = async () => {
+        navigate(`/board`);
+    };
+
+
+    const Comment = ({comment}) => (
         <div key={comment.commentId} className="mb-4 p-4 bg-gray-100 rounded-md">
             <div className="flex justify-between items-center mb-2">
                 <div className="flex">
-                    <img src={profile} className="w-8 h-8 rounded-full" alt="Profile" />
+                    <img src={profile} className="w-8 h-8 rounded-full" alt="Profile"/>
                     <span className="text-gray-600 ml-3">{comment.authorId}</span>
                 </div>
-                {currentUser && currentUser.id === comment.authorId && (
-                    <CommentMenu commentId={comment.commentId} />
-                )}
+                <CommentMenu commentId={comment.commentId} authorId={comment.authorId}/>
             </div>
             <p className="text-gray-800 mb-2">{comment.commentContent}</p>
             <button
@@ -344,26 +519,34 @@ const PostDetailPage = () => {
         </div>
     );
 
+
     return (
         <div className="bg-customMainBg min-h-screen p-8">
             <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
                 <div className="flex justify-between items-center mb-4">
+                    <FaArrowLeft className="text-2xl mr-4" onClick={handleExit}/>
                     <h1 className="text-2xl font-bold">{post?.title}</h1>
-                    {currentUser && currentUser.id === post?.authorId && (
-                        <div className="flex space-x-2">
-                            <button onClick={() => setIsEditing(!isEditing)}
-                                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">수정
-                            </button>
-                            <button onClick={handleDelete}
-                                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">삭제
-                            </button>
-                            <button onClick={() => handleReport('post')}
-                                    className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">신고
-                            </button>
-                        </div>
-                    )}
+                    <div className="flex space-x-2">
+                        {isPostAuthor && (
+                            <>
+                                <button onClick={handleEditClick}
+                                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">수정
+                                </button>
+                                <button onClick={handleDelete}
+                                        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">삭제
+                                </button>
+                            </>
+                        )}
+                        {!isPostAuthor && (
+                            <button onClick={handleWriteReport}
+                                    className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">신고</button>
+                        )}
+                    </div>
                 </div>
-
+                {post.imageUrl && (
+                    <img src={post.imageUrl} alt="게시글 이미지" className="max-w-full h-auto"/>
+                )}
+                <p>{post.content}</p>
                 {isEditing ? (
                     <div className="mb-4">
                         <input
@@ -381,37 +564,49 @@ const PostDetailPage = () => {
                         />
                         <button
                             onClick={handleUpdate}
-                            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                            className="mt-2 mr-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                         >
                             저장
                         </button>
-                    </div>
-                ) : (
-                    <div>
-                        <p className="text-gray-800 mb-4">{post?.content}</p>
                         <button
-                            onClick={handleWriteLike}
-                            className="flex items-center text-blue-500 hover:text-blue-700"
-                        >
-                            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                 xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                      d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
-                            </svg>
-                            좋아요 ({likesCount})
+                            onClick={handleCancelEdit}
+                            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                        >취소
                         </button>
                     </div>
+                ) : (
+                    <button
+                        onClick={handleWriteLikes}
+                        className={`flex items-center ${isLiked ? 'text-red-500' : 'text-blue-500'} hover:text-blue-700`}
+                    >
+                        <svg
+                            className="w-5 h-5 mr-1"
+                            fill={isLiked ? 'currentColor' : 'none'}
+                            stroke={isLiked ? 'none' : 'currentColor'}
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d={isLiked
+                                    ? "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                                    : "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"}
+                            />
+                        </svg>
+                        좋아요 ({likesCount})
+                    </button>
                 )}
 
                 <div className="mt-8">
                     <h2 className="text-xl font-semibold mb-4">댓글</h2>
                     <form onSubmit={handleCommentSubmit} className="mb-4 flex h-14">
-                        <textarea
-                            value={newComment}
-                            onChange={(e) => setNewComment(e.target.value)}
-                            className="w-11/12 p-2 border rounded-md"
-                            rows="3"
-                        />
+                    <textarea
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        className="w-11/12 p-2 border rounded-md"
+                        rows="3"
+                    />
                         <button type="submit"
                                 className="mt-2 ml-2 px-2 py-2 bg-customBoardBg text-white rounded-md hover:bg-gray-600">작성
                         </button>
@@ -431,6 +626,6 @@ const PostDetailPage = () => {
             </div>
         </div>
     );
-};
+}
 
 export default PostDetailPage;
