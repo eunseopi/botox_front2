@@ -41,7 +41,10 @@ const VoiceChat = () => {
     const [RoomInfo, setRoomInfo] = useState(null);
 
     // (1) Socket 서버에 연결
-    const socket = io('http://localhost:8090');
+    const socket = io('https://botox-chat.site', {
+        path: '/socket.io',
+        secure: true,
+    });
 
 // (2) 방 관리 객체 생성
 // 실제로 받은 room 에 존재하는 user 를 담을 것
