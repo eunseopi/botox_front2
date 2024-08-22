@@ -275,7 +275,7 @@ const VoiceChat = () => {
                 socket.emit('enter_room', { userId, roomNum });
             } else {
                 console.log("Socket is not connected. Retrying...");
-                setTimeout(tryEmitEnterSocket, 500); // 0.5초 후에 다시 시도
+                setTimeout(tryEmitEnterSocket, 5000); // 5초 후에 다시 시도
             }
         };
 
