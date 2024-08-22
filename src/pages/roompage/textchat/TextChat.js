@@ -199,7 +199,23 @@ const TextChat = () => {
                 const result = await response.json();
                 console.log("Room info API response:", result);
                 if (result.code === "OK" && result.data) {
-                    setRoomInfo(result.data);
+                    // 참가자 목록 업데이트
+                    const participants = result.data.participants || [];
+                    const updatedUsers = participants.map(user => ({
+                        id: user.id,
+                        name: user.nickname,
+                        isCurrentUser: user.id === currentUser.id
+                    }));
+
+                    // 현재 사용자의 닉네임을 포함시킬 수 있는 경우 처리
+                    if (currentUser && !updatedUsers.some(user => user.id === currentUser.id)) {
+                        updatedUsers.push({
+                            id: currentUser.id,
+                            name: userData?.userNickname || "내 닉네임",
+                            isCurrentUser: true
+                        });
+                    }
+                    setInUsers(updatedUsers);
                 } else {
                     console.error("Failed to fetch room data:", result.message);
                 }
@@ -209,7 +225,13 @@ const TextChat = () => {
         };
 
         fetchRoomInfo();
-    }, [roomNum]);
+
+        // 주기적으로 방 정보 갱신
+        const intervalId = setInterval(fetchRoomInfo, 5000); // 5초마다 갱신
+
+        return () => clearInterval(intervalId); // 컴포넌트 언마운트 시 인터벌 클리어
+    }, [roomNum, currentUser, userData]);
+
 
     const joinRoom = async (roomNum, userId) => {
         try {
@@ -225,14 +247,11 @@ const TextChat = () => {
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || '방 입장에 실패했습니다.');
 
-            // participants가 정의되지 않았을 때 기본값을 빈 배열로 설정
+            // 참가자 목록 업데이트
             const participants = data.participants || [];
-
-            // 기존 참가자 목록과 새로운 참가자 목록 병합
             const existingParticipants = new Set(inUsers.map(user => user.id));
             const newParticipants = participants.filter(user => !existingParticipants.has(user.id));
 
-            // 참가자 목록 업데이트
             setInUsers(prevUsers => [...prevUsers, ...newParticipants]);
 
             // 방 정보 업데이트
@@ -243,21 +262,12 @@ const TextChat = () => {
             };
             setRoomInfo(updatedRoomInfo);
 
-            // WebSocket을 통해 업데이트된 방 정보 브로드캐스트
-            if (stompClient && stompClient.connected) {
-                stompClient.send("/app/rooms/" + roomNum + "/update", {}, JSON.stringify(updatedRoomInfo));
-            }
-
             return data;
         } catch (error) {
             console.error('Error joining room:', error);
             throw error;
         }
     };
-
-
-
-
 
     const leaveRoom = async (roomNum, userId) => {
         try {
@@ -273,17 +283,15 @@ const TextChat = () => {
             const data = await response.json();
             if (data.code === 'NO_CONTENT') {
                 console.log('방을 성공적으로 나갔습니다.');
-                // 방을 나간 후 상태를 업데이트합니다.
-                setMessages([]);
-                setInUsers([]);
-                // 방 목록에서 해당 방을 제거
-                setRooms(prevRooms => prevRooms.filter(room => room.roomNum !== roomNum));
-                setFilteredPosts(prevRooms => prevRooms.filter(room => room.roomNum !== roomNum));
+
+                // 참가자 목록에서 제거
+                setInUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
             }
         } catch (error) {
             console.error('Error leaving room:', error);
         }
     };
+
 
     const handleExit = async () => {
         if (isExiting) return; // 이미 진행 중이면 함수 종료
