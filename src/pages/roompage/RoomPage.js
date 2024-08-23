@@ -354,6 +354,40 @@ const RoomPage = () => {
         setSelectedRoom(null);
     };
 
+    const handleQuickEnterRoom = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const userId = JSON.parse(localStorage.getItem('userInfo')).id;
+
+            // 1단계: 빠른 방 찾기 요청
+            const enterResponse = await fetch(`https://botox-chat.site/api/rooms/${game}/enter`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ userId: userId }),});
+            if (!enterResponse.ok) throw new Error('Failed to enter room');
+
+            // 2단계: 방 목록 새로 가져오기
+            await fetchRoomData();
+
+            // 가장 최근에 생성된 방 또는 사용자가 참여한 방 찾기
+            const latestRoom = rooms.find(room => room.participantIds.includes(userId));
+
+            if (latestRoom) {
+                navigate(`/rooms/${latestRoom.roomNum}`, { state: { roomInfo: latestRoom } });
+            } else {
+                alert('방을 찾을 수 없습니다. 방 목록을 확인해주세요.');
+            }
+        } catch (error) {
+            console.error('Error entering room:', error);
+            alert('빠른 방 찾기 실패. 다시 시도해주세요.');
+        }
+    };
+
+
+
 
 
     useEffect(() => {
@@ -443,6 +477,13 @@ const RoomPage = () => {
                         onClick={handleCreateRoom}
                         className="text-xl text-white bg-customBoardBg p-2 rounded-xl w-48"
                     >방 만들기
+                    </button>
+                </div>
+                <div className="flex justify-end sm:mr-60 lg:mr-60 xl:mr-72 mb-4">
+                    <button
+                        onClick={handleQuickEnterRoom}
+                        className="text-xl text-white bg-customBoardBg p-2 rounded-xl w-48"
+                    >빠른 방 찾기
                     </button>
                 </div>
                 <div className="mb-8">

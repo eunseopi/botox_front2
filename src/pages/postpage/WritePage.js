@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AWS from 'aws-sdk';
-
-// AWS S3 설정
-const s3 = new AWS.S3({
-    region: 'ap-northeast-2', // 리전 설정
-    accessKeyId: process.env.REACT_APP_AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.REACT_APP_AWS_SECRET_ACCESS_KEY,
-});
 
 function WritePage() {
     const [title, setTitle] = useState('');

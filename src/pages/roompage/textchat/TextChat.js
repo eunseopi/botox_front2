@@ -49,28 +49,31 @@ const TextChat = () => {
         const userId = JSON.parse(localStorage.getItem('userInfo')).username;
         if (!userId) {
             console.error('No username found in localStorage');
+            navigate('/login');
             return;
         }
 
         try {
             const response = await fetch(`https://botox-chat.site/api/users/${userId}`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
-            const result = await response.json();
-            console.log('fetchUserData result:', result); // 결과 확인
-            if (result.code === "OK" && result.data) {
-                setUserData(result.data);
-                setNewNickname(result.data.userNickname || ""); // 기본값을 빈 문자열로 설정
+            const data = await response.json();
+            console.log('Fetched user data:', data); // 디버깅 로그 추가
+            if (data.code === "OK" && data.data) {
+                setUserData({
+                    ...data.data,
+                    userNickname: data.data.userNickname, // 'userNickname' 사용
+                    status: data.data.status
+                });
             } else {
-                console.error("Failed to fetch user data:", result.message);
+                console.error('Failed to fetch user data:', data.message);
             }
         } catch (error) {
-            console.error("Error fetching user data:", error);
+            console.error('Error fetching user data:', error);
         }
     };
-
 
     useEffect(() => {
         const socket = new WebSocket('ws://localhost:3000/ws'); // WebSocket 서버 URL을 확인하세요.
@@ -106,7 +109,7 @@ const TextChat = () => {
             setCurrentUser(userInfo);
 
             const initialUsers = [
-                { id: userInfo.id, nickname: userInfo.nickname }
+                { id: userInfo.id, name: userInfo.userNickname } // 'userNickname' 사용
             ];
             setInUsers(initialUsers);
 
@@ -118,17 +121,11 @@ const TextChat = () => {
         }
     }, [roomInfo]);
 
-
     useEffect(() => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
     }, [messages]);
-
-
-    useEffect(() => {
-        console.log('현재 방 참가자:', inUsers);
-    }, [inUsers]);
 
     useEffect(() => {
         if (roomInfo && currentUser) {
@@ -138,17 +135,13 @@ const TextChat = () => {
             // 참가자 목록 업데이트
             const updatedUsers = uniqueParticipantIds.map(id => ({
                 id,
-                name: id === currentUser.id ? userData?.userNickname || "내 닉네임" : "Unknown User",
+                name: id === currentUser.id ? userData?.userNickname || "내 닉네임" : "Unknown User", // 'userNickname' 사용
                 isCurrentUser: id === currentUser.id
             }));
 
             setInUsers(updatedUsers);
         }
     }, [currentUser, roomInfo, userData]);
-
-
-
-
 
     const handleSendMessage = () => {
         console.log('STOMP Client:', stompClient);
@@ -157,7 +150,7 @@ const TextChat = () => {
         if (stompClient && stompClient.connected && newMessage.trim()) {
             const message = {
                 chatRoomId: roomNum,
-                name: userData.name || '익명',
+                name: userData?.userNickname || '익명', // 'userNickname' 사용
                 message: newMessage,
                 timestamp: new Date().toISOString()
             };
@@ -176,7 +169,6 @@ const TextChat = () => {
         }
     }, [stompClient]);
 
-
     const handleKeyPress = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -190,7 +182,6 @@ const TextChat = () => {
             fetchRoomInfo(); // 방 정보를 가져옵니다.
         }
     }, [roomNum]);
-
 
     const fetchRoomInfo = async () => {
         try {
@@ -209,7 +200,7 @@ const TextChat = () => {
                 // 참가자 목록 업데이트
                 const updatedUsers = uniqueParticipantIds.map(id => ({
                     id,
-                    name: id === currentUser?.id ? userData.userNickname || "내 닉네임" : "Unknown User",
+                    name: id === currentUser?.id ? userData?.userNickname || "내 닉네임" : "User", // 'userNickname' 사용
                     isCurrentUser: id === currentUser?.id
                 }));
 
@@ -226,11 +217,6 @@ const TextChat = () => {
             console.error("Error fetching room data:", error);
         }
     };
-
-
-
-
-
 
     const joinRoom = async (roomNum, userId) => {
         try {
@@ -249,8 +235,11 @@ const TextChat = () => {
             // 참가자 목록 업데이트
             const participants = data.participantIds || [];
 
-            // 중복 ID를 제거한 참가자 목록 생성
-            const uniqueParticipants = Array.from(new Map(participants.map(user => [user.id, user])).values());
+            const uniqueParticipants = Array.from(new Set(participants.map(user => user.id))).map(id => ({
+                id,
+                name: id === currentUser.id ? userData?.userNickname || "내 닉네임" : "Unknown User", // 'userNickname' 사용
+                isCurrentUser: id === currentUser.id
+            }));
 
             setInUsers(prevUsers => {
                 const existingIds = new Set(prevUsers.map(user => user.id));
@@ -276,10 +265,6 @@ const TextChat = () => {
         }
     };
 
-
-
-
-
     const leaveRoom = async (roomNum, userId) => {
         try {
             const response = await fetch(`https://botox-chat.site/api/rooms/${roomNum}/leave`, {
@@ -303,7 +288,6 @@ const TextChat = () => {
         }
     };
 
-
     const handleExit = async () => {
         if (isExiting) return; // 이미 진행 중이면 함수 종료
         setIsExiting(true); // 진행 중 상태 설정
@@ -320,7 +304,6 @@ const TextChat = () => {
     useEffect(() => {
         console.log('Room info:', roomInfo);
     }, [roomInfo]);
-
 
     const handleReport = () => {
         alert("신고가 접수되었습니다.");
@@ -371,7 +354,6 @@ const TextChat = () => {
         }
     }, [roomInfo]);
 
-
     const updateRoomInfo = (updatedRoom) => {
         if (updatedRoom.roomNum === roomInfo.roomNum) {
             // 방 정보 업데이트
@@ -383,18 +365,13 @@ const TextChat = () => {
             // 참가자 목록 업데이트
             const updatedUsers = uniqueParticipants.map(user => ({
                 id: user.id,
-                name: user.name,
+                name: currentUser.nickname,
                 isCurrentUser: user.isCurrentUser
             }));
 
             setInUsers(updatedUsers);
         }
     };
-
-
-
-
-
 
     return (
         <div className="bg-customMainBg text-white h-screen flex flex-col">
@@ -486,5 +463,3 @@ const TextChat = () => {
 };
 
 export default TextChat;
-
-

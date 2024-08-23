@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { FaUser, FaEdit, FaCheck } from 'react-icons/fa';
+import { FaEdit, FaCheck } from 'react-icons/fa';
 
-
-const ProfileModal = ({onClose}) => {
+const ProfileModal = ({ onClose }) => {
     const [userData, setUserData] = useState(null);
     const [newNickname, setNewNickname] = useState("");
     const [newProfileImage, setNewProfileImage] = useState(null);
@@ -30,6 +29,7 @@ const ProfileModal = ({onClose}) => {
             if (result.code === "OK" && result.data) {
                 setUserData(result.data);
                 setNewNickname(result.data.userNickname);
+                setPreviewImage(result.data.userProfilePic || 'default-profile-image-url'); // 초기 미리보기 이미지 설정
             } else {
                 console.error("Failed to fetch user data:", result.message);
             }
@@ -45,41 +45,73 @@ const ProfileModal = ({onClose}) => {
     const handleProfileImageChange = (e) => {
         const file = e.target.files[0];
         setNewProfileImage(file);
-        setPreviewImage(URL.createObjectURL(file));
+        setPreviewImage(URL.createObjectURL(file)); // 미리보기 이미지 설정
     }
 
     const handleSave = async () => {
-        // 닉네임 + 프로필 사진 저장
-        // const formData = new FormData();
-        // formData.append('nickname', newNickname);
-        // if(newProfileImage) {
-        //     formData.append('profileImage', newProfileImage);
-        // }
-        //
-        // try {
-        //     const response = await fetch('/api/profile/update', {
-        //         method: 'POST',
-        //         headers: {
-        //             'Authorization' : `Bearer ${localStorage.getItem('token')}`,
-        //         },
-        //         body: formData
-        //     });
-        //     const data = await response.json();
-        //     alert('프로필이 업데이트되었습니다.');
-        //     fetchUserdata();
-        //     setIsEditing(false);
-        // }catch(error){
-        //     console.error('에러 이유:', error);
-        // }
+        const formData = new FormData();
+        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+        const token = localStorage.getItem('token');
 
-        // 임시로.
-        alert('프로필이 업데이트되었습니다.');
-        setIsEditing(false);
-    }
+        if (!userInfo || !userInfo.id || !token) {
+            console.error('사용자 정보 또는 토큰이 없습니다.');
+            alert('로그인 정보가 유효하지 않습니다. 다시 로그인해 주세요.');
+            return;
+        }
 
-    if (!userData) {
-        return <div>Loading...</div>
-    }
+        formData.append('userId', userInfo.id);
+
+        if (newProfileImage) {
+            formData.append('file', newProfileImage);
+            formData.append('isProfileImage', 'true');
+        }
+
+        try {
+            // 프로필 이미지 업로드
+            if (newProfileImage) {
+                const imageResponse = await fetch('https://botox-chat.site/api/posts/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: formData
+                });
+
+                if (!imageResponse.ok) {
+                    throw new Error(`서버 오류: ${imageResponse.status}`);
+                }
+
+                const imageData = await imageResponse.json();
+
+                if (imageData.code === "OK" && imageData.data) {
+                    console.log('프로필 이미지 업로드 성공:', imageData.data);
+                    console.log('서버 메시지:', imageData.message);
+
+                    // 새 이미지 URL로 상태 업데이트
+                    setPreviewImage(imageData.data);
+
+                    // 사용자 데이터 재호출
+                    await fetchUserData(); // 최신 데이터로 업데이트
+                } else {
+                    throw new Error(imageData.message || '프로필 이미지 업로드 실패');
+                }
+            } else {
+                // 이미지가 없으면 닉네임만 업데이트
+                if (newNickname !== userData.userNickname) {
+                    // 닉네임 업데이트 로직...
+                }
+                // 사용자 데이터 재호출
+                await fetchUserData(); // 최신 데이터로 업데이트
+            }
+
+            alert('프로필이 업데이트되었습니다.');
+            setIsEditing(false);
+        } catch (error) {
+            console.error('에러 이유:', error);
+            alert(`프로필 업데이트 중 오류가 발생했습니다: ${error.message}`);
+        }
+    };
+
     if (!userData) {
         return <div>Loading...</div>
     }
@@ -98,7 +130,7 @@ const ProfileModal = ({onClose}) => {
                 <div className="flex flex-col items-center mb-6">
                     <div className="relative">
                         <img
-                            src={previewImage || userData.userProfilePic || 'default-profile-image-url'}
+                            src={previewImage || 'default-profile-image-url'}
                             alt="Profile"
                             className="w-32 h-32 rounded-full object-cover mb-4"
                         />
@@ -159,4 +191,5 @@ const ProfileModal = ({onClose}) => {
         </div>
     );
 };
+
 export default ProfileModal;
