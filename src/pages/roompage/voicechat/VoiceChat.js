@@ -482,6 +482,7 @@ const VoiceChat = () => {
         if (isExiting) return; // 이미 진행 중이면 함수 종료
         setIsExiting(true); // 진행 중 상태 설정
         if (currentUser) {
+            await leaveSocket(currentUser.id, roomInfo.roomNum);
             await leaveRoom(roomInfo.roomNum, currentUser.id);
             setMessages([]);
             setInUsers([]);
@@ -495,6 +496,7 @@ const VoiceChat = () => {
         if (isExiting) return; // 이미 진행 중이면 함수 종료
         setIsExiting(true); // 진행 중 상태 설정
         if (currentUser) {
+            await leaveSocket(currentUser.id, roomInfo.roomNum);
             await leaveRoom(roomInfo.roomNum, currentUser.id);
             setMessages([]);
             setInUsers([]);
