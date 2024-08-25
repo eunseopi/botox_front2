@@ -168,11 +168,14 @@ const TextChat = () => {
                 name: userData?.userNickname || '익명',
                 content: newMessage,
                 timestamp: new Date().toISOString(),
-                isMyMessage: true // 메시지의 출처를 확인하는 필드 추가
             };
             stompClient.current.send(`/pub/message`, {}, JSON.stringify(body));
-            // 새 메시지를 즉시 메시지 리스트에 추가
-            setMessages(prevMessages => [...prevMessages, body]);
+
+
+            // 자신이 보낸 메시지를 바로 UI에 반영할 때, isMyMessage 필드를 추가합니다.
+            setMessages(prevMessages => [...prevMessages, { ...body, isMyMessage: true }]);
+            //setMessages(prevMessages => [...prevMessages, body]);
+
             // 입력 칸 비우기
             setNewMessage('');
         } else {
