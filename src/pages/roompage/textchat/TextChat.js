@@ -164,7 +164,7 @@ const TextChat = () => {
             // 참가자 목록 업데이트
             const updatedUsers = uniqueParticipantIds.map(id => ({
                 id,
-                name: id === currentUser.id ? userData.userNickname || "내 닉네임" : "Unknown User", // 'userNickname' 사용
+                name: id === currentUser.id ? userData?.userNickname || "내 닉네임" : "Unknown User", // 'userNickname' 사용
                 isCurrentUser: id === currentUser.id
             }));
 
@@ -405,7 +405,7 @@ const TextChat = () => {
                                 <div
                                     className={`max-w-3/4 p-2 text-black rounded-lg ${msg.isMyMessage ? 'bg-yellow-200' : 'bg-white'}`}>
                                     <div className='text-black text-right font-bold'>
-                                    {userData?.userNickname}
+                                    {userData.userNickname}
                                     </div>
                                     {msg.message}
                                 </div>
