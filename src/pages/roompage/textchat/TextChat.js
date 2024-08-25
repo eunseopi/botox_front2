@@ -15,7 +15,8 @@ const TextChat = () => {
     const [RoomInfo, setRoomInfo] = useState(null);
     const [rooms, setRooms] = useState([]);
     const [filteredPosts, setFilteredPosts] = useState([]);
-    const [stompClient, setStompClient] = useState(null);
+    // const [stompClient, setStompClient] = useState(null);
+    const stompClient = useRef(null); // useRef로 변경
     const chatContainerRef = useRef(null);
     const textareaRef = useRef(null);
     const [isConnected, setIsConnected] = useState(false);
@@ -76,31 +77,44 @@ const TextChat = () => {
     };
 
     useEffect(() => {
-        const socket = new WebSocket('ws://localhost:3000/ws'); // WebSocket 서버 URL을 확인하세요.
-        const stompClient = Stomp.over(socket);
+        connect(); // 컴포넌트 마운트 시 WebSocket 연결
+        return () => disconnect(); // 컴포넌트 언마운트 시 WebSocket 연결 해제
+    }, [roomNum]);
 
-        stompClient.connect({}, (frame) => {
+    const connect = () => {
+        const socket = new SockJS('https://botox-chat.site/ws'); // SockJS endpoint
+        stompClient.current = Stomp.over(socket);
+
+        const headers = {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+        };
+
+        stompClient.current.connect(headers, frame => {
+            console.log("[2] WebSocket connected");
             console.log('Connected:', frame);
-            stompClient.subscribe(`/sub/chatroom/${roomNum}`, (message) => {
-                console.log('Received message:', message.body); // 수신된 메시지 로그 추가
-                const newMessage = JSON.parse(message.body);
-                setMessages((prevMessages) => [...prevMessages, newMessage]);
-                const updatedRoom = JSON.parse(message.body);
-                updateRoomInfo(updatedRoom);
+
+            stompClient.current.subscribe(`/sub/chatroom/${roomNum}`, message => {
+                if (message.body) {
+                    const newMessage = JSON.parse(message.body);
+                    setMessages(prevMessages => [...prevMessages, newMessage]);
+                    console.log("[3] Stomp client connected");
+                }
             });
-            setStompClient(stompClient);
+            console.log("[4] WebSocket message processed");
             setIsConnected(true);
-        }, (error) => {
+        }, error => {
             console.error('Error connecting to WebSocket:', error);
         });
+    };
 
-        return () => {
-            if (stompClient) {
-                stompClient.disconnect();
+    const disconnect = () => {
+        if (stompClient.current) {
+            stompClient.current.disconnect(() => {
+                console.log('Disconnected');
                 setIsConnected(false);
-            }
-        };
-    }, [roomNum]);
+            });
+        }
+    };
 
     useEffect(() => {
         const userInfo = JSON.parse(localStorage.getItem('userInfo'));
@@ -143,24 +157,26 @@ const TextChat = () => {
         }
     }, [currentUser, roomInfo, userData]);
 
+    // 메시지를 서버로 보내는 함수입니다.
     const handleSendMessage = () => {
-        console.log('STOMP Client:', stompClient);
-        console.log('STOMP Client Connected:', stompClient && stompClient.connected);
-
-        if (stompClient && stompClient.connected && newMessage.trim()) {
-            const message = {
+        if (stompClient.current && stompClient.current.connected && newMessage.trim()) {
+            const body = {
                 chatRoomId: roomNum,
-                name: userData?.userNickname || '익명', // 'userNickname' 사용
-                message: newMessage,
-                timestamp: new Date().toISOString()
+                name: userData?.userNickname || '익명',
+                content: newMessage,
+                timestamp: new Date().toISOString(),
+                isMyMessage: true // 메시지의 출처를 확인하는 필드 추가
             };
-            console.log('Sending message:', message); // 로그 추가
-            stompClient.send('/pub/message', {}, JSON.stringify(message));
+            stompClient.current.send(`/pub/message`, {}, JSON.stringify(body));
+            // 새 메시지를 즉시 메시지 리스트에 추가
+            setMessages(prevMessages => [...prevMessages, body]);
+            // 입력 칸 비우기
             setNewMessage('');
         } else {
             console.error('STOMP 클라이언트가 연결되지 않았거나 메시지가 비어 있습니다.');
         }
     };
+
 
     useEffect(() => {
         if (stompClient) {
@@ -410,6 +426,7 @@ const TextChat = () => {
                             className="flex-grow bg-customChatBg text-white rounded-2xl p-2 mr-2"
                             placeholder="메시지를 입력하세요..."
                             rows="1"
+                            value={newMessage}  // 이 줄을 추가해서 newMessage 상태와 연결
                             onChange={(e) => setNewMessage(e.target.value)}
                             onKeyPress={handleKeyPress}
                         />
