@@ -96,6 +96,9 @@ const TextChat = () => {
             stompClient.current.subscribe(`/sub/chatroom/${roomNum}`, message => {
                 if (message.body) {
                     const newMessage = JSON.parse(message.body);
+                    // 현재 사용자의 닉네임과 비교하여 isMyMessage 필드 설정
+                    newMessage.isMyMessage = newMessage.name === userData?.userNickname;
+
                     setMessages(prevMessages => [...prevMessages, newMessage]);
                     console.log("[3] Stomp client connected");
                 }
