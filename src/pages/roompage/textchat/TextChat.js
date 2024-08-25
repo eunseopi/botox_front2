@@ -420,7 +420,7 @@ const TextChat = () => {
                         {messages.map((msg, index) => (
                             <div key={index} className={`mb-4 flex ${msg.isMyMessage ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-3/4 p-2 text-black rounded-lg ${msg.isMyMessage ? 'bg-yellow-200' : 'bg-white'}`}>
-                                    {msg.content}
+                                    {msg.message}
                                 </div>
                             </div>
                         ))}
