@@ -43,38 +43,50 @@ const TextChat = () => {
     });
 
     useEffect(() => {
-        fetchUserData();
-    }, []);
-
-    const fetchUserData = async () => {
-        const userId = JSON.parse(localStorage.getItem('userInfo')).username;
-        if (!userId) {
-            console.error('No username found in localStorage');
-            navigate('/login');
-            return;
-        }
-
-        try {
-            const response = await fetch(`https://botox-chat.site/api/users/${userId}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-            const data = await response.json();
-            console.log('Fetched user data:', data); // 디버깅 로그 추가
-            if (data.code === "OK" && data.data) {
-                setUserData({
-                    ...data.data,
-                    userNickname: data.data.userNickname, // 'userNickname' 사용
-                    status: data.data.status
-                });
-            } else {
-                console.error('Failed to fetch user data:', data.message);
+        const fetchUserData = async () => {
+            const userId = JSON.parse(localStorage.getItem('userInfo')).username;
+            if (!userId) {
+                console.error('No username found in localStorage');
+                navigate('/login');
+                return;
             }
-        } catch (error) {
-            console.error('Error fetching user data:', error);
+
+            try {
+                const response = await fetch(`https://botox-chat.site/api/users/${userId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                const data = await response.json();
+                console.log('Fetched user data:', data); // 디버깅 로그 추가
+                if (data.code === "OK" && data.data) {
+                    setUserData({
+                        ...data.data,
+                        userNickname: data.data.userNickname,
+                        status: data.data.status
+                    });
+                    setCurrentUser({
+                        id: data.data.id,
+                        username: data.data.username,
+                        userStatus: data.data.status
+                    });
+                } else {
+                    console.error('Failed to fetch user data:', data.message);
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+            }
+        };
+
+        fetchUserData();
+    }, [navigate]); // navigate를 의존성 배열에 추가
+
+    useEffect(() => {
+        if (currentUser && userData && roomNum) {
+            fetchRoomInfo(); // 방 정보를 가져옵니다.
         }
-    };
+    }, [currentUser, userData, roomNum]); // currentUser, userData, roomNum이 변경될 때마다 호출
+
 
     useEffect(() => {
         connect(); // 컴포넌트 마운트 시 WebSocket 연결
@@ -152,7 +164,7 @@ const TextChat = () => {
             // 참가자 목록 업데이트
             const updatedUsers = uniqueParticipantIds.map(id => ({
                 id,
-                name: id === currentUser.id ? userData?.userNickname || "내 닉네임" : "Unknown User", // 'userNickname' 사용
+                name: id === currentUser.id ? userData.userNickname || "내 닉네임" : "Unknown User", // 'userNickname' 사용
                 isCurrentUser: id === currentUser.id
             }));
 
@@ -160,24 +172,19 @@ const TextChat = () => {
         }
     }, [currentUser, roomInfo, userData]);
 
-    // 메시지를 서버로 보내는 함수입니다.
     const handleSendMessage = () => {
         if (stompClient.current && stompClient.current.connected && newMessage.trim()) {
             const body = {
                 chatRoomId: roomNum,
-                name: userData?.userNickname || '익명',
+                name: userData.userNickname || '익명',
                 message: newMessage,
                 timestamp: new Date().toISOString(),
             };
+
             stompClient.current.send(`/pub/message`, {}, JSON.stringify(body));
 
-
-            // 자신이 보낸 메시지를 바로 UI에 반영할 때, isMyMessage 필드를 추가합니다.
-            setMessages(prevMessages => [...prevMessages, { ...body, isMyMessage: true }]);
-            //setMessages(prevMessages => [...prevMessages, body]);
-
-            // 입력 칸 비우기
-            setNewMessage('');
+            // 메시지를 UI에 바로 추가하지 않고, 서버로부터 수신되었을 때만 추가
+            setNewMessage(''); // 메시지 전송 후 입력 필드 초기화
         } else {
             console.error('STOMP 클라이언트가 연결되지 않았거나 메시지가 비어 있습니다.');
         }
@@ -198,14 +205,12 @@ const TextChat = () => {
         }
     };
 
-    useEffect(() => {
-        // 방 정보가 있을 때만 호출
-        if (roomNum) {
-            fetchRoomInfo(); // 방 정보를 가져옵니다.
-        }
-    }, [roomNum]);
-
     const fetchRoomInfo = async () => {
+        if (!currentUser || !userData) {
+            console.error("currentUser or userData is not set.");
+            return;
+        }
+
         try {
             const response = await fetch(`https://botox-chat.site/api/rooms?roomNum=${roomNum}`, {
                 headers: {
@@ -215,6 +220,9 @@ const TextChat = () => {
             const result = await response.json();
             console.log('fetchRoomInfo result:', result); // 결과 확인
 
+            console.log('Current User:', currentUser);
+            console.log('User Data:', userData);
+
             if (result.code === "OK" && result.data) {
                 const participantIds = result.data.participantIds || [];
                 const uniqueParticipantIds = Array.from(new Set(participantIds));
@@ -222,8 +230,8 @@ const TextChat = () => {
                 // 참가자 목록 업데이트
                 const updatedUsers = uniqueParticipantIds.map(id => ({
                     id,
-                    name: id === currentUser?.id ? userData?.userNickname || "내 닉네임" : "User", // 'userNickname' 사용
-                    isCurrentUser: id === currentUser?.id
+                    name: id === currentUser.id ? userData.userNickname || "내 닉네임" : "User", // 'userNickname' 사용
+                    isCurrentUser: id === currentUser.id
                 }));
 
                 setInUsers(updatedUsers);
@@ -239,6 +247,7 @@ const TextChat = () => {
             console.error("Error fetching room data:", error);
         }
     };
+
 
     const joinRoom = async (roomNum, userId) => {
         try {
@@ -276,9 +285,6 @@ const TextChat = () => {
                 participants: uniqueParticipants
             };
             setRoomInfo(updatedRoomInfo);
-
-            // 방 정보를 새로 가져오기
-            fetchRoomInfo(); // 방 정보를 가져옵니다.
 
             return data;
         } catch (error) {
@@ -370,30 +376,6 @@ const TextChat = () => {
         setIsRoomEditModalOpen(false); // 모달 닫기
     };
 
-    useEffect(() => {
-        if (roomInfo && roomInfo.roomNum) {
-            fetchRoomInfo(); // 방 정보를 가져옵니다.
-        }
-    }, [roomInfo]);
-
-    const updateRoomInfo = (updatedRoom) => {
-        if (updatedRoom.roomNum === roomInfo.roomNum) {
-            // 방 정보 업데이트
-            setRoomInfo(updatedRoom);
-
-            // 중복 ID를 제거한 참가자 목록 생성
-            const uniqueParticipants = Array.from(new Map(updatedRoom.participants.map(user => [user.id, user])).values());
-
-            // 참가자 목록 업데이트
-            const updatedUsers = uniqueParticipants.map(user => ({
-                id: user.id,
-                name: currentUser.nickname,
-                isCurrentUser: user.isCurrentUser
-            }));
-
-            setInUsers(updatedUsers);
-        }
-    };
 
     return (
         <div className="bg-customMainBg text-white h-screen flex flex-col">
@@ -418,13 +400,19 @@ const TextChat = () => {
 
                     <div className="bg-customIdBg rounded-2xl p-4 h-3/4 overflow-y-auto" ref={chatContainerRef}>
                         {messages.map((msg, index) => (
-                            <div key={index} className={`mb-4 flex ${msg.isMyMessage ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-3/4 p-2 text-black rounded-lg ${msg.isMyMessage ? 'bg-yellow-200' : 'bg-white'}`}>
+                            <div key={index}
+                                 className={`mb-4 flex ${msg.isMyMessage ? 'justify-end' : 'justify-start'}`}>
+                                <div
+                                    className={`max-w-3/4 p-2 text-black rounded-lg ${msg.isMyMessage ? 'bg-yellow-200' : 'bg-white'}`}>
+                                    <div className='text-black text-right font-bold'>
+                                    {userData.userNickname}
+                                    </div>
                                     {msg.message}
                                 </div>
                             </div>
                         ))}
                     </div>
+
 
                     <div className="mt-4 flex">
                         <textarea
