@@ -154,7 +154,8 @@ const RoomPage = () => {
             setUserData({
                 ...data.data,
                 nickname: data.data.userNickname,
-                status: data.data.status
+                status: data.data.status,
+                profilePic: data.data.userProfilePic
             });
         } catch (error) {
             console.error('Error fetching user data:', error);
@@ -340,20 +341,6 @@ const RoomPage = () => {
         navigate(`/rooms/${updatedRoom.roomNum}`, { state: { roomInfo: updatedRoom } });
     };
 
-    const handlePasswordSubmit = (enteredPassword) => {
-        if (enteredPassword === selectedRoom.roomPassword) {
-            navigate(`/rooms/${selectedRoom.roomNum}`, { state: { roomInfo: selectedRoom } });
-            setPasswordModalOpen(false);
-        } else {
-            alert('비밀번호가 틀렸습니다.');
-        }
-    };
-
-    const handlePasswordModalClose = () => {
-        setPasswordModalOpen(false);
-        setSelectedRoom(null);
-    };
-
     const handleQuickEnterRoom = async () => {
         try {
             const token = localStorage.getItem('token');
@@ -411,7 +398,7 @@ const RoomPage = () => {
                         <div className="fixed top-10 left-10 flex justify-center items-start z-10">
                             <div ref={modalBackground} className="bg-white p-4 w-64 rounded-xl shadow-lg">
                                 <div className="flex items-center mb-4">
-                                    <img src={userData.userProfilePic || profile} alt="Profile" className="w-16 h-16 rounded-full mr-4"/>
+                                    <img src={userData.profilePic || profile} alt="Profile" className="w-16 h-16 rounded-full mr-4"/>
                                     <div>
                                         <p className="text-xl font-semibold">{userData.nickname}</p>
                                         <p className="text-sm text-gray-500">{userData.status}</p>
@@ -553,7 +540,7 @@ const RoomPage = () => {
                 />
             )}
             {showProfileModal && (
-                <ProfileModal onClose={() => setShowProfileModal(false)}/>
+                <ProfileModal onClose={() => setShowProfileModal(false)} userData={userData}/>
             )}
         </div>
     );
