@@ -405,7 +405,7 @@ const TextChat = () => {
                                 <div
                                     className={`max-w-3/4 p-2 text-black rounded-lg ${msg.isMyMessage ? 'bg-yellow-200' : 'bg-white'}`}>
                                     <div className='text-black text-right font-bold'>
-                                    {userData.userNickname}
+                                    {msg.name}
                                     </div>
                                     {msg.message}
                                 </div>
