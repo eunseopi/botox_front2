@@ -408,7 +408,7 @@ const TextChat = () => {
                                     className={`max-w-3/4 p-2 text-black rounded-lg ${msg.isMyMessage ? 'bg-yellow-200' : 'bg-white'}`}>
                                     <div className='text-black text-right font-bold'>
                                         {msg.name}
-                                        <small>{format(new Date(msg.timestamp + (9 * 60 * 60 * 1000)), 'yyyy-MM-dd HH:mm:ss', {locale: ko})}</small>
+                                        <small>{format(new Date(new Date(msg.timestamp).getTime() + 9 * 60 * 60 * 1000), 'yyyy-MM-dd HH:mm:ss', {locale: ko})}</small>
                                     </div>
                                     {msg.message}
                                 </div>
