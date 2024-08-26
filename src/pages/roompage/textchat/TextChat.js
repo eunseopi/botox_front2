@@ -180,7 +180,7 @@ const TextChat = () => {
                 chatRoomId: roomNum,
                 name: userData.userNickname || '익명',
                 message: newMessage,
-                timestamp: new Date().getTime(),
+                timestamp: new Date().toISOString(),
             };
 
             stompClient.current.send(`/pub/message`, {}, JSON.stringify(body));
@@ -407,7 +407,8 @@ const TextChat = () => {
                                 <div
                                     className={`max-w-3/4 p-2 text-black rounded-lg ${msg.isMyMessage ? 'bg-yellow-200' : 'bg-white'}`}>
                                     <div className='text-black text-right font-bold'>
-                                    {msg.name} <small>{format(new Date(msg.timestamp), 'yyyy-MM-dd HH:mm:ss', { locale: ko })}</small>
+                                        {msg.name}
+                                        <small>{format(new Date(msg.timestamp + (9 * 60 * 60 * 1000)), 'yyyy-MM-dd HH:mm:ss', {locale: ko})}</small>
                                     </div>
                                     {msg.message}
                                 </div>
