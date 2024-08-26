@@ -53,59 +53,46 @@ const ProfileModal = ({ onClose }) => {
         const userInfo = JSON.parse(localStorage.getItem('userInfo'));
         const token = localStorage.getItem('token');
 
-        if (!userInfo || !userInfo.id || !token) {
+        if (!userInfo || !userInfo.username || !token) {
             console.error('사용자 정보 또는 토큰이 없습니다.');
             alert('로그인 정보가 유효하지 않습니다. 다시 로그인해 주세요.');
             return;
         }
 
-        formData.append('userId', userInfo.id);
+        formData.append('userProfile', userData.userProfile); // 현재 프로필 설정 유지
+        formData.append('userNickname', newNickname); // 새 닉네임 추가
+        formData.append('username', userInfo.username);
 
         if (newProfileImage) {
-            formData.append('file', newProfileImage);
-            formData.append('isProfileImage', 'true');
+            formData.append('file', newProfileImage); // 새 프로필 이미지 추가
         }
 
         try {
-            // 프로필 이미지 업로드
-            if (newProfileImage) {
-                const imageResponse = await fetch('https://botox-chat.site/api/posts/upload', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                    body: formData
-                });
+            const response = await fetch(`https://botox-chat.site/api/users/${userInfo.username}/profile`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData
+            });
 
-                if (!imageResponse.ok) {
-                    throw new Error(`서버 오류: ${imageResponse.status}`);
-                }
+            if (!response.ok) {
+                throw new Error(`서버 오류: ${response.status}`);
+            }
 
-                const imageData = await imageResponse.json();
+            const result = await response.json();
 
-                if (imageData.code === "OK" && imageData.data) {
-                    console.log('프로필 이미지 업로드 성공:', imageData.data);
-                    console.log('서버 메시지:', imageData.message);
-
-                    // 새 이미지 URL로 상태 업데이트
-                    setPreviewImage(imageData.data);
-
-                    // 사용자 데이터 재호출
-                    await fetchUserData(); // 최신 데이터로 업데이트
-                } else {
-                    throw new Error(imageData.message || '프로필 이미지 업로드 실패');
-                }
-            } else {
-                // 이미지가 없으면 닉네임만 업데이트
-                if (newNickname !== userData.userNickname) {
-                    // 닉네임 업데이트 로직...
+            if (result.code === "OK") {
+                if (newProfileImage) {
+                    setPreviewImage(result.data.userProfilePic || 'default-profile-image-url'); // 업데이트된 이미지 URL
                 }
                 // 사용자 데이터 재호출
                 await fetchUserData(); // 최신 데이터로 업데이트
+                alert('프로필이 업데이트되었습니다.');
+                setIsEditing(false);
+            } else {
+                throw new Error(result.message || '프로필 업데이트 실패');
             }
-
-            alert('프로필이 업데이트되었습니다.');
-            setIsEditing(false);
         } catch (error) {
             console.error('에러 이유:', error);
             alert(`프로필 업데이트 중 오류가 발생했습니다: ${error.message}`);
