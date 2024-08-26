@@ -180,7 +180,7 @@ const TextChat = () => {
                 chatRoomId: roomNum,
                 name: userData.userNickname || '익명',
                 message: newMessage,
-                timestamp: new Date().toISOString(),
+                timestamp: new Date().getTime(),
             };
 
             stompClient.current.send(`/pub/message`, {}, JSON.stringify(body));
