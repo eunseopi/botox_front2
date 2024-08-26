@@ -5,6 +5,8 @@ import title from '../../../images/title.png';
 import { Stomp } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import RoomEditModal from "../modal/RoomEditModal";
+import { format } from 'date-fns'; // 날짜 형식을 지정하기 위한 라이브러리입니다.
+import { ko } from 'date-fns/locale'; // 날짜 형식을 한국어로 지정하기 위한 로케일입니다.
 
 const TextChat = () => {
     const [messages, setMessages] = useState([]);
@@ -405,7 +407,7 @@ const TextChat = () => {
                                 <div
                                     className={`max-w-3/4 p-2 text-black rounded-lg ${msg.isMyMessage ? 'bg-yellow-200' : 'bg-white'}`}>
                                     <div className='text-black text-right font-bold'>
-                                    {msg.name}
+                                    {msg.name} <small>{format(new Date(msg.timestamp), 'yyyy-MM-dd HH:mm:ss', { locale: ko })}</small>
                                     </div>
                                     {msg.message}
                                 </div>
