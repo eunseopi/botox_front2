@@ -11,13 +11,8 @@ import { ko } from 'date-fns/locale'; // 날짜 형식을 한국어로 지정하
 const TextChat = () => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
-    const [textWsClient, setTextWsClient] = useState(null);
     const [userData, setUserData] = useState(null);
-    const [newNickname, setNewNickname] = useState("");
     const [RoomInfo, setRoomInfo] = useState(null);
-    const [rooms, setRooms] = useState([]);
-    const [filteredPosts, setFilteredPosts] = useState([]);
-    // const [stompClient, setStompClient] = useState(null);
     const stompClient = useRef(null); // useRef로 변경
     const chatContainerRef = useRef(null);
     const textareaRef = useRef(null);

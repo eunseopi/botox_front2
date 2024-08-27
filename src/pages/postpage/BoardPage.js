@@ -60,7 +60,10 @@ const BoardPage = () => {
             });
 
             if (response.data && response.data.data && Array.isArray(response.data.data.content)) {
-                const fetchedPosts = response.data.data.content;
+                const fetchedPosts = response.data.data.content.map(post=>({
+                    ...post,
+                    title: post.title || '제목 없음'
+                }))
                 setPosts(fetchedPosts);
                 setFilteredPosts(fetchedPosts);
 
@@ -200,7 +203,7 @@ const BoardPage = () => {
             setFilteredPosts(posts);
         } else {
             const filtered = posts.filter(post =>
-                post.title.toLowerCase().includes(searchTerm.toLowerCase())
+                post.title && post.title.toLowerCase().includes(searchTerm.toLowerCase())
             );
             setFilteredPosts(filtered);
         }
@@ -268,10 +271,7 @@ const BoardPage = () => {
     };
 
     const getCurrentPosts = () => {
-        // 인기 게시글을 제외한 일반 게시글을 필터링함
         const nonHotPosts = filteredPosts.filter(post => !hotPosts.some(hotPost => hotPost.postId === post.postId));
-
-        // 페이지에 해당하는 게시글만 가져옴 (인기 게시글 제외 후 페이지네이션 적용)
         const indexOfLastPost = currentPage * postsPerPage;
         const indexOfFirstPost = indexOfLastPost - postsPerPage;
         return nonHotPosts.slice(indexOfFirstPost, indexOfLastPost);
@@ -372,8 +372,8 @@ const BoardPage = () => {
                         className="text-xl text-white bg-customBoardBg p-2 rounded-xl w-48"
                     >게시글 쓰기</button>
                 </div>
-                {/* 인기 게시글을 상단에 고정 표시 */}
-                {hotPosts.length > 0 && (
+                {/* 인기 게시글을 첫 페이지에만 표시 */}
+                {currentPage === 1 && hotPosts.length > 0 && (
                     <div className="mb-8">
                         <h2 className="text-white text-2xl text-center mb-4">🔥 인기 게시글</h2>
                         {hotPosts.map((post, index) => (
@@ -381,7 +381,7 @@ const BoardPage = () => {
                                 key={`${post.postId}-${index}`}
                                 post={post}
                                 onClick={handlePostClick}
-                                isHot={true}  // 인기 게시글 여부 전달
+                                isHot={true}
                             />
                         ))}
                     </div>

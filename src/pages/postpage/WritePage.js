@@ -55,7 +55,6 @@ function WritePage() {
 
             const { data } = await response.json();
             console.log('New post added:', data);
-            alert(response.message);
             navigate('/board', { state: { newPost: data } });
         } catch (error) {
             console.error(error);
