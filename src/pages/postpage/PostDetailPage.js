@@ -11,6 +11,7 @@ const fetchCommentsByPostId = async (postId) => {
         const response = await axios.get(`https://botox-chat.site/api/posts/${postId}/comments`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
+        console.log(response);
         return response.data;
     } catch (error) {
         console.error('댓글 불러오기 오류:', error.response?.data || error.message);
@@ -54,6 +55,7 @@ const PostDetailPage = () => {
             const result = await response.json();
             if (result.code === "OK" && result.data) {
                 setUserData(result.data);
+                console.log(userData)
             } else {
                 console.error("Failed to fetch user data:", result.message);
             }
@@ -63,11 +65,19 @@ const PostDetailPage = () => {
     };
 
     useEffect(() => {
-        if (post) {
-            setIsLiked(post.isLiked || false);
-            setLikesCount(post.likesCount || 0);
+        if (post?.postId) {
+            const storedPost = localStorage.getItem(`post_${post.postId}`);
+            if (storedPost) {
+                const parsedPost = JSON.parse(storedPost);
+                setPost(parsedPost);
+                setLikesCount(parsedPost.likesCount);
+                setIsLiked(parsedPost.isLiked);
+            } else {
+                setLikesCount(post.likesCount || 0);
+                setIsLiked(post.isLiked || false);
+            }
         }
-    }, [post]);
+    }, [post?.postId]);
 
     useEffect(() => {
         fetchUserData();
@@ -251,105 +261,42 @@ const PostDetailPage = () => {
         }
     };
 
-    // const handleWriteLike = async () => {
-    //     try {
-    //         const response = await axios.post(`https://botox-chat.site/api/posts/${post.postId}/like?userId=${currentUser.id}`, null, {
-    //             headers: {
-    //                 Authorization: `Bearer ${localStorage.getItem('token')}`,
-    //                 'Content-Type': 'application/json',
-    //             },
-    //         });
-    //
-    //         const { code, data, message } = response.data;
-    //
-    //         if (code === 'OK' && data && data.likesCount !== undefined) {
-    //             setLikesCount(data.likesCount); // UI 업데이트
-    //             setIsLiked(true); // 좋아요 상태 업데이트
-    //             const updatedPost = { ...post, likesCount: data.likesCount }; // 게시글 상태 업데이트
-    //             setPost(updatedPost);
-    //             localStorage.setItem(`post_${updatedPost.postId}`, JSON.stringify(updatedPost));
-    //         } else {
-    //             alert(message); // 서버에서 받은 메시지를 사용자에게 표시
-    //         }
-    //     } catch (error) {
-    //         console.error('좋아요 처리에 실패했습니다.', error);
-    //     }
-    // };
-    //
-    // const handleWriteLikeCancel = async () => {
-    //     try {
-    //         const response = await axios.delete(`https://botox-chat.site/api/posts/${post.postId}/like?userId=${currentUser.id}`, {
-    //             headers: {
-    //                 Authorization: `Bearer ${localStorage.getItem('token')}`,
-    //             },
-    //         });
-    //
-    //         const { code, data, message } = response.data;
-    //
-    //         if (code === 'OK' && data && data.likesCount !== undefined) {
-    //             setLikesCount(data.likesCount); // UI 업데이트
-    //             setIsLiked(false); // 좋아요 상태 업데이트
-    //             const updatedPost = { ...post, likesCount: data.likesCount }; // 게시글 상태 업데이트
-    //             setPost(updatedPost);
-    //             localStorage.setItem(`post_${updatedPost.postId}`, JSON.stringify(updatedPost));
-    //             alert(message);
-    //         } else {
-    //             alert(message); // 서버에서 받은 메시지를 사용자에게 표시
-    //         }
-    //     } catch (error) {
-    //         console.error('좋아요 취소에 실패했습니다.', error);
-    //     }
-    // };
-
     const handleWriteLikes = async () => {
         try {
-            let response;
-            let updatedLikesCount;
+            const response = await axios.post(`https://botox-chat.site/api/posts/${post.postId}/like?userId=${currentUser.id}`, null, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json',
+                },
+            });
 
-            if (isLiked) {
-                // 좋아요 취소 요청
-                response = await axios.delete(`https://botox-chat.site/api/posts/${post.postId}/like?userId=${currentUser.id}`, {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem('token')}`,
-                    },
-                });
+            console.log('좋아요 응답:', response.data);
 
-                if (response.status === 200) {
-                    updatedLikesCount = likesCount - 1; // 좋아요 취소 시 카운트 감소
-                } else {
-                    console.error('좋아요 취소에 실패했습니다.');
-                    return;
-                }
-            } else {
-                // 좋아요 추가 요청
-                response = await axios.post(`https://botox-chat.site/api/posts/${post.postId}/like?userId=${currentUser.id}`, null, {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem('token')}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
+            const { code, message } = response.data;
 
-                if (response.status === 200) {
-                    updatedLikesCount = likesCount + 1; // 좋아요 추가 시 카운트 증가
-                } else {
-                    console.error('좋아요 추가에 실패했습니다.');
-                    return;
-                }
-            }
+            if (code === 'OK') {
+                // 서버에서 새로운 좋아요 상태를 반환하지 않으므로, 현재 상태를 토글합니다.
+                const newIsLiked = !isLiked;
+                const newLikesCount = isLiked ? likesCount - 1 : likesCount + 1;
 
-            // 서버 응답 데이터에서 likesCount를 사용하여 UI 상태 업데이트
-            const { code, data } = response.data;
+                console.log('새로운 좋아요 상태:', newIsLiked);
+                console.log('새로운 좋아요 수:', newLikesCount);
 
-            if (code === 'OK' && data && data.likesCount !== undefined) {
-                setLikesCount(updatedLikesCount); // UI에 업데이트된 좋아요 카운트 설정
-                setIsLiked(!isLiked); // 좋아요 상태 토글
+                setLikesCount(newLikesCount);
+                setIsLiked(newIsLiked);
                 setPost(prevPost => ({
                     ...prevPost,
-                    likesCount: updatedLikesCount,
-                    isLiked: !isLiked,
+                    likesCount: newLikesCount,
+                    isLiked: newIsLiked,
                 }));
+
+                // LocalStorage 업데이트
+                const updatedPost = { ...post, likesCount: newLikesCount, isLiked: newIsLiked };
+                localStorage.setItem(`post_${post.postId}`, JSON.stringify(updatedPost));
+
+                console.log(message); // "게시글에 좋아요를 눌렀습니다." 메시지 출력
             } else {
-                console.error(response.data.message);
+                console.error('좋아요 처리 실패:', message);
             }
         } catch (error) {
             console.error('좋아요 처리에 실패했습니다.', error);
@@ -499,7 +446,7 @@ const PostDetailPage = () => {
         <div key={comment.commentId} className="mb-4 p-4 bg-gray-100 rounded-md">
             <div className="flex justify-between items-center mb-2">
                 <div className="flex">
-                    <img src={profile} className="w-8 h-8 rounded-full" alt="Profile"/>
+                    <img src={comment.userProfilePic || profile} className="w-8 h-8 rounded-full" alt="Profile"/>
                     <span className="text-gray-600 ml-3">{comment.authorId}</span>
                 </div>
                 <CommentMenu commentId={comment.commentId} authorId={comment.authorId}/>
@@ -577,7 +524,7 @@ const PostDetailPage = () => {
                 ) : (
                     <button
                         onClick={handleWriteLikes}
-                        className={`flex items-center ${isLiked ? 'text-red-500' : 'text-blue-500'} hover:text-blue-700`}
+                        className={`flex items-center ${isLiked ? 'text-red-500' : 'text-black'}`}
                     >
                         <svg
                             className="w-5 h-5 mr-1"

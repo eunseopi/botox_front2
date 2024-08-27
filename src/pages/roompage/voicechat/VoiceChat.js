@@ -12,13 +12,10 @@ import RoomEditModal from "../modal/RoomEditModal";
 const VoiceChat = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { id } = useParams();
     const roomInfo = location.state?.roomInfo || {};
     const [userData, setUserData] = useState(null);
     const textareaRef = useRef(null);
     const [newNickname, setNewNickname] = useState("");
-    const [rooms, setRooms] = useState([]);
-    const [filteredPosts, setFilteredPosts] = useState([]);
     const [inUsers, setInUsers] = useState([]);
     const [messages, setMessages] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
