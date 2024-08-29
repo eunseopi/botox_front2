@@ -3,12 +3,12 @@ import {useNavigate, useLocation} from "react-router-dom";
 import menuImage from "../../images/menu.png";
 import egg from '../../images/egg.png';
 import search from "../../images/search.png";
-import CreateRoomModal from './CreateRoomModal';
-import PasswordModal from './modal/PassWordModal'; // PasswordModal 임포트 추가
+import CreateRoomModal from './CreateRoomModal.js';
+import PasswordModal from './modal/PassWordModal.js'; // PasswordModal 임포트 추가
 import { AiOutlineUserAdd } from "react-icons/ai";
 import {FaClipboard, FaHome, FaLock, FaSignOutAlt, FaUser, FaUserFriends} from 'react-icons/fa';
-import ProfileModal from "./modal/ProfileModal";
-import FriendSearchModal from "./modal/FriendSearchModal";
+import ProfileModal from "./modal/ProfileModal.js";
+import FriendSearchModal from "./modal/FriendSearchModal.js";
 import profile from "../../images/profile.jpg";
 
 
@@ -279,6 +279,7 @@ const RoomPage = () => {
 
             const result = await response.json();
             if (result.code === 'NO_CONTENT') {
+                await fetchRoomData(); // 방 목록 재요청
                 // 방 입장 성공
                 navigate(`/rooms/${room.roomNum}`, { state: { roomInfo: room } });
             } else {

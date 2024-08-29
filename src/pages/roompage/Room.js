@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import TextChat from './textchat/TextChat';
-import VoiceChat from './voicechat/VoiceChat';
+import TextChat from './textchat/TextChat.js';
+import VoiceChat from './voicechat/VoiceChat.js';
 
 const Room = () => {
     const { roomNum } = useParams();

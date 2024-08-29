@@ -6,9 +6,9 @@ import profile from '../../images/profile.jpg';
 import search from "../../images/search.png";
 import axios from 'axios';
 import { FaClipboard, FaHome, FaSignOutAlt, FaUser, FaUserFriends } from "react-icons/fa";
-import ProfileModal from "../roompage/modal/ProfileModal";
+import ProfileModal from "../roompage/modal/ProfileModal.js";
 import { AiOutlineUserAdd } from "react-icons/ai";
-import FriendSearchModal from "../roompage/modal/FriendSearchModal";
+import FriendSearchModal from "../roompage/modal/FriendSearchModal.js";
 
 const GameCard = ({ post, onClick, isHot }) => (
     <div className="bg-customBoardBg rounded-lg p-4 mb-4 shadow-lg mx-auto max-w-3xl cursor-pointer"
@@ -60,14 +60,12 @@ const BoardPage = () => {
             });
 
             if (response.data && response.data.data && Array.isArray(response.data.data.content)) {
-                const fetchedPosts = response.data.data.content.map(post=>({
+                const fetchedPosts = response.data.data.content.map(post => ({
                     ...post,
                     title: post.title || '제목 없음'
-                }))
-                setPosts(fetchedPosts);
-                setFilteredPosts(fetchedPosts);
+                }));
 
-                // 인기 게시글 선정
+                // 각 게시글의 좋아요 수를 가져옵니다
                 const postsWithLikes = await Promise.all(
                     fetchedPosts.map(async (post) => {
                         const likesCount = await fetchLikesCount(post.postId);
@@ -75,10 +73,15 @@ const BoardPage = () => {
                     })
                 );
 
+                // 좋아요 수에 따라 게시글을 정렬합니다
                 const sortedPosts = postsWithLikes.sort((a, b) => b.likesCount - a.likesCount);
-                const topHotPosts = sortedPosts.slice(0, 1); // 좋아요 수가 가장 많은 1개 게시글
-                setHotPosts(topHotPosts);
 
+                // 상위 1개의 게시글을 인기 게시글로 선정합니다
+                const topHotPosts = sortedPosts.slice(0, 1);
+
+                setPosts(sortedPosts);
+                setFilteredPosts(sortedPosts);
+                setHotPosts(topHotPosts);
             } else {
                 console.error('Unexpected response format', response.data);
             }
@@ -89,6 +92,7 @@ const BoardPage = () => {
             setIsLoading(false);
         }
     };
+
 
 
     const fetchFriendList = async () => {
@@ -141,8 +145,8 @@ const BoardPage = () => {
                     Authorization: `Bearer ${token}`,
                 }
             });
-            if (response.data.status === 'OK') {
-                return response.data.data;
+            if (response.data.code === "OK") {
+                return response.data.data; // 이 부분이 실제 좋아요 수입니다
             } else {
                 console.error('Failed to fetch likes count');
                 return 0;
@@ -229,10 +233,11 @@ const BoardPage = () => {
     useEffect(() => {
         if (location.state && location.state.newPost) {
             console.log('New post received:', location.state.newPost);
-            setPosts(prevPosts => [location.state.newPost, ...prevPosts]);
+            fetchPosts(); // 전체 게시글 목록을 다시 불러옵니다
             navigate('/board', { replace: true, state: {} });
         }
     }, [location.state, navigate]);
+
 
     const handleLogoutBtn = () => {
         localStorage.removeItem('token');
