@@ -4,7 +4,7 @@ import { FaArrowLeft, FaUser } from 'react-icons/fa';
 import title from '../../../images/title.png';
 import { Stomp } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import RoomEditModal from "../modal/RoomEditModal";
+import RoomEditModal from "../modal/RoomEditModal.js";
 import { format } from 'date-fns'; // 날짜 형식을 지정하기 위한 라이브러리입니다.
 import { ko } from 'date-fns/locale'; // 날짜 형식을 한국어로 지정하기 위한 로케일입니다.
 
@@ -112,7 +112,21 @@ const TextChat = () => {
                     console.log("[3] Stomp client connected");
                 }
             });
-            console.log("[4] WebSocket message processed");
+
+            // 구독 설정 추가
+            stompClient.current.subscribe(`/sub/chatroom/${roomNum}/participants`, message => {
+                const updatedParticipants = JSON.parse(message.body);
+                const uniqueParticipantIds = Array.from(new Set(updatedParticipants));
+
+                const updatedUsers = uniqueParticipantIds.map(id => ({
+                    id,
+                    name: id === currentUser.id ? userData?.userNickname || "Unknown User" : "Unknown User",
+                    isCurrentUser: id === currentUser.id
+                }));
+
+                setInUsers(updatedUsers);
+            });
+
             setIsConnected(true);
         }, error => {
             console.error('Error connecting to WebSocket:', error);
@@ -139,11 +153,31 @@ const TextChat = () => {
             ];
             setInUsers(initialUsers);
 
-            joinRoom(roomInfo.roomNum, userInfo.id);
-
             setEditRoomInfo(roomInfo);
 
-            return () => leaveRoom(roomInfo.roomNum, userInfo.id);
+
+            // WebSocket 연결 완료 후 구독 설정
+            if (isConnected && stompClient.current) {
+                stompClient.current.subscribe(`/sub/chatroom/${roomInfo.roomNum}/participants`, message => {
+                    const updatedParticipants = JSON.parse(message.body);
+                    const uniqueParticipantIds = Array.from(new Set(updatedParticipants));
+
+                    const updatedUsers = uniqueParticipantIds.map(id => ({
+                        id,
+                        name: id === userInfo.id ? userInfo.userNickname : "Unknown User",
+                        isCurrentUser: id === userInfo.id
+                    }));
+
+                    setInUsers(updatedUsers);
+                });
+            }
+
+            return () => {
+                if (isConnected && stompClient.current) {
+                    stompClient.current.unsubscribe(`/sub/chatroom/${roomInfo.roomNum}/participants`);
+                }
+                leaveRoom(roomInfo.roomNum, userInfo.id);
+            };
         }
     }, [roomInfo]);
 
@@ -217,9 +251,6 @@ const TextChat = () => {
             const result = await response.json();
             console.log('fetchRoomInfo result:', result); // 결과 확인
 
-            console.log('Current User:', currentUser);
-            console.log('User Data:', userData);
-
             if (result.code === "OK" && result.data) {
                 const participantIds = result.data.participantIds || [];
                 const uniqueParticipantIds = Array.from(new Set(participantIds));
@@ -227,7 +258,7 @@ const TextChat = () => {
                 // 참가자 목록 업데이트
                 const updatedUsers = uniqueParticipantIds.map(id => ({
                     id,
-                    name: id === currentUser.id ? userData.userNickname || "내 닉네임" : "User", // 'userNickname' 사용
+                    name: id === currentUser.id ? userData.userNickname || "내 닉네임" : "User",
                     isCurrentUser: id === currentUser.id
                 }));
 
@@ -235,7 +266,8 @@ const TextChat = () => {
                 setRoomInfo(prevRoomInfo => ({
                     ...prevRoomInfo,
                     roomUserCount: uniqueParticipantIds.length,
-                    participants: updatedUsers
+                    participants: updatedUsers,
+                    participantIds: uniqueParticipantIds
                 }));
             } else {
                 console.error("Failed to fetch room data:", result.message);
@@ -245,50 +277,6 @@ const TextChat = () => {
         }
     };
 
-
-    const joinRoom = async (roomNum, userId) => {
-        try {
-            const response = await fetch(`https://botox-chat.site/api/rooms/${roomNum}/join`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({ userId })
-            });
-
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || '방 입장에 실패했습니다.');
-
-            // 참가자 목록 업데이트
-            const participants = data.participantIds || [];
-
-            const uniqueParticipants = Array.from(new Set(participants.map(user => user.id))).map(id => ({
-                id,
-                name: id === currentUser.id ? userData?.userNickname || "내 닉네임" : "Unknown User", // 'userNickname' 사용
-                isCurrentUser: id === currentUser.id
-            }));
-
-            setInUsers(prevUsers => {
-                const existingIds = new Set(prevUsers.map(user => user.id));
-                const newParticipants = uniqueParticipants.filter(user => !existingIds.has(user.id));
-                return [...prevUsers, ...newParticipants];
-            });
-
-            // 방 정보 업데이트
-            const updatedRoomInfo = {
-                ...roomInfo,
-                roomUserCount: uniqueParticipants.length,
-                participants: uniqueParticipants
-            };
-            setRoomInfo(updatedRoomInfo);
-
-            return data;
-        } catch (error) {
-            console.error('Error joining room:', error);
-            throw error;
-        }
-    };
 
     const leaveRoom = async (roomNum, userId) => {
         try {

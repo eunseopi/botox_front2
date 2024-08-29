@@ -7,7 +7,7 @@ import call from '../../../images/call.png';
 import report from '../../../images/report.png';
 import friend from '../../../images/friend.png';
 import { FaArrowLeft } from 'react-icons/fa';
-import RoomEditModal from "../modal/RoomEditModal";
+import RoomEditModal from "../modal/RoomEditModal.js";
 
 const VoiceChat = () => {
     const navigate = useNavigate();
@@ -379,58 +379,10 @@ const VoiceChat = () => {
             ];
             setInUsers(initialUsers);
 
-            joinRoom(roomInfo.roomNum, userInfo.id);
 
             setEditRoomInfo(roomInfo);
-
-            return () => leaveRoom(roomInfo.roomNum, userInfo.id);
         }
     }, [roomInfo]);
-
-    const joinRoom = async (roomNum, userId) => {
-        try {
-            const response = await fetch(`https://botox-chat.site/api/rooms/${roomNum}/join`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({ userId })
-            });
-
-            const data = await response.json();
-            await joinSocket(userId.toString(), roomNum.toString());
-            if (!response.ok) throw new Error(data.message || '방 입장에 실패했습니다.');
-
-            // 참가자 목록 업데이트
-            const participants = data.participantIds || [];
-
-            // 중복 ID를 제거한 참가자 목록 생성
-            const uniqueParticipants = Array.from(new Map(participants.map(user => [user.id, user])).values());
-
-            setInUsers(prevUsers => {
-                const existingIds = new Set(prevUsers.map(user => user.id));
-                const newParticipants = uniqueParticipants.filter(user => !existingIds.has(user.id));
-                return [...prevUsers, ...newParticipants];
-            });
-
-            // 방 정보 업데이트
-            const updatedRoomInfo = {
-                ...roomInfo,
-                roomUserCount: uniqueParticipants.length,
-                participants: uniqueParticipants
-            };
-            setRoomInfo(updatedRoomInfo);
-
-            // 방 정보를 새로 가져오기
-            fetchRoomInfo(); // 방 정보를 가져옵니다.
-
-            return data;
-        } catch (error) {
-            console.error('Error joining room:', error);
-            throw error;
-        }
-    };
 
     const leaveRoom = async (roomNum, userId) => {
         try {
