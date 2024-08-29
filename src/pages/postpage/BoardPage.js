@@ -65,7 +65,7 @@ const BoardPage = () => {
                     title: post.title || '제목 없음'
                 }));
 
-                // 각 게시글의 좋아요 수를 가져옵니다
+                // 좋아요 수 가져오기
                 const postsWithLikes = await Promise.all(
                     fetchedPosts.map(async (post) => {
                         const likesCount = await fetchLikesCount(post.postId);
@@ -73,14 +73,15 @@ const BoardPage = () => {
                     })
                 );
 
-                // 좋아요 수에 따라 게시글을 정렬합니다
-                const sortedPosts = postsWithLikes.sort((a, b) => b.likesCount - a.likesCount);
+                // 최신순으로 정렬
+                const sortedByDate = postsWithLikes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-                // 상위 1개의 게시글을 인기 게시글로 선정합니다
-                const topHotPosts = sortedPosts.slice(0, 1);
+                // 좋아요 수로 정렬하여 인기 게시글 선정
+                const sortedByLikes = [...postsWithLikes].sort((a, b) => b.likesCount - a.likesCount);
+                const topHotPosts = sortedByLikes.slice(0, 1);
 
-                setPosts(sortedPosts);
-                setFilteredPosts(sortedPosts);
+                setPosts(sortedByDate);
+                setFilteredPosts(sortedByDate);
                 setHotPosts(topHotPosts);
             } else {
                 console.error('Unexpected response format', response.data);
@@ -92,7 +93,6 @@ const BoardPage = () => {
             setIsLoading(false);
         }
     };
-
 
 
     const fetchFriendList = async () => {
