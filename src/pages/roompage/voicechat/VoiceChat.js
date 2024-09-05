@@ -324,7 +324,15 @@ const VoiceChat = () => {
     }
 
     useEffect(() => {
-        fetchUserData();
+        const fetchUserDataAndJoinRoom = async () => {
+            await fetchUserData();
+            if (userData && roomInfo) {
+                await joinSocket(userData.userId.toString(), roomInfo.roomNum.toString());
+                fetchRoomInfo(); // 방 정보를 새로 가져옵니다.
+            }
+        };
+
+        fetchUserDataAndJoinRoom();
     }, []);
 
     const fetchUserData = async () => {
